@@ -1,0 +1,1763 @@
+```html
+<!doctype html> 
+<html lang="en">
+<head>
+<link rel="icon" href="./kimsze_sharp16.ico?v=20260111a" sizes="any">
+<link rel="shortcut icon" href="./kimsze_sharp16.ico?v=20260111a">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>P1 Compare 3 Numbers (100–999) — Blocks ➜ Place Value Numbers</title>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+
+      /* PV header tints */
+      --cardH:#ffe4ee;   /* hundreds */
+      --cardT:#ffedd5;   /* tens */
+      --cardO:#e0f2fe;   /* ones */
+
+      --input:#e8f6df;
+      --inputLine:#9bbf87;
+
+      --radius:22px;
+      --shadow:0 14px 40px rgba(2,6,23,.10);
+
+      --drawerW:min(420px, 92vw);
+
+      /* stage base size (auto-scaled; no scrolling) */
+      --baseW: 980;
+      --baseH: 740;
+
+      /* teacher-controlled (but auto-clamped to FIT) */
+      --hundW: 58px;
+      /* --hundH auto-set in JS */
+      --tenW: 12px;
+      /* --tenH auto-set in JS */
+      --oneS: 16px;
+
+      /* layout gaps used in fit math */
+      --gap: 6px;
+    }
+
+    *{box-sizing:border-box}
+    html, body{
+      height:100%;
+      margin:0;
+      overflow:hidden;
+      overscroll-behavior:none;
+      background:var(--bg);
+      color:var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif;
+    }
+
+    body.drawer-open .viewport{ padding-right: calc(var(--drawerW) + 10px); }
+
+    .viewport{
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      padding: 10px;
+    }
+    .stage{
+      width: calc(var(--baseW) * 1px);
+      height: calc(var(--baseH) * 1px);
+      transform-origin: top left;
+      background:#fff;
+      border-radius: 18px;
+      position:relative;
+    }
+
+    .wrap{
+      width:100%; height:100%;
+      padding: 14px 14px 10px;
+      display:flex; flex-direction:column;
+      gap: 8px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    .titleLine{
+      display:flex;
+      align-items:flex-end;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .titleText{
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1.02;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .hdrBlank{
+      width: 94px;
+      height: 48px;
+      border-radius: 16px;
+      border: 3px solid var(--inputLine);
+      background: var(--input);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 28px;
+      font-weight: 900;
+      color: rgba(15,23,42,.95);
+      user-select:none;
+    }
+
+    .settingsBtn{
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      border-radius:999px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+      box-shadow: 0 8px 18px rgba(2,6,23,.06);
+      white-space:nowrap;
+      height: 44px;
+      align-self:flex-start;
+    }
+    .settingsBtn:active{ transform: translateY(1px); }
+
+    .floatGear{
+      position:absolute;
+      right: 14px;
+      bottom: 14px;
+      z-index: 5;
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      border:1px solid var(--line);
+      background:#fff;
+      box-shadow: 0 14px 30px rgba(2,6,23,.14);
+      cursor:pointer;
+      font-size: 22px;
+      font-weight: 900;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .floatGear:active{ transform: translateY(1px); }
+
+    /* ====== NEW: Place Value comparison table (numbers only) ====== */
+    .pvCompareWrap{
+      display:none;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 10px;
+      background:#fff;
+    }
+    body.pvcompare .pvCompareWrap{ display:block; }
+    body.pvcompare .grid{ display:none; } /* hide blocks when comparing by numbers */
+
+    .pvCompareTable{
+      width:100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow:hidden;
+      border-radius: 18px;
+      border: 4px solid #b6d38a; /* soft green like your example */
+      background:#fff;
+      table-layout: fixed;
+    }
+    .pvCompareTable th,
+    .pvCompareTable td{
+      border: 2px solid rgba(15,23,42,.08);
+      text-align:center;
+      font-weight: 900;
+    }
+    .pvCompareTable th{
+      padding: 10px 8px;
+      font-size: 24px;
+      color:#fff;
+      letter-spacing:.2px;
+    }
+    .pvCompareTable th.colNum{ background:#7fbf5a; }
+    .pvCompareTable th.colH{ background:#ff5aa6; }
+    .pvCompareTable th.colT{ background:#ffb020; }
+    .pvCompareTable th.colO{ background:#18b8ff; }
+
+    .pvCompareTable td{
+      padding: 10px 8px;
+      font-size: 30px;
+      background:#fff;
+    }
+    .pvCompareTable td.numCell{
+      font-size: 34px;
+      background: #f5ffe9;
+    }
+
+    /* ====== 3-column blocks layout (existing) ====== */
+    .grid{
+      flex: 1;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      align-items:stretch;
+      min-height: 0;
+    }
+
+    .side{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      background:#fff;
+      padding: 10px 10px 10px;
+      display:flex;
+      flex-direction:column;
+      min-height:0;
+    }
+
+    .blocks{
+      flex: 1;
+      min-height: 0;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      align-items:stretch;
+      padding: 6px 6px 6px;
+    }
+
+    /* base ten blocks go UP (top-anchored) */
+    .hundredsArea, .tensArea, .onesArea{
+      border-radius: 14px;
+      background:#fff;
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding: 6px 4px;
+      min-height: 170px;
+      overflow:hidden;
+    }
+
+    /* Hundreds: two columns (5 left, 4 right) to save space */
+    .hundredsArea{
+      flex-direction: row;
+      justify-content:center;
+      gap: var(--gap);
+      align-items:flex-start;
+    }
+
+    /* Ones: two columns (5 left, 4 right) to save space */
+    .onesArea{
+      flex-direction: row;
+      justify-content:center;
+      gap: var(--gap);
+      align-items:flex-start;
+    }
+
+    .colStack{
+      display:flex;
+      flex-direction: column;
+      gap: var(--gap);
+      align-items:center;
+      justify-content:flex-start;
+    }
+
+    .tensArea{
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-content:flex-start;
+      gap: var(--gap);
+      justify-content:center;
+    }
+
+    .hundSvg{
+      width: var(--hundW);
+      height: var(--hundH);
+      display:block;
+      filter: drop-shadow(0 8px 12px rgba(2,6,23,.10));
+      user-select:none;
+    }
+    .rodSvg{
+      width: var(--tenW);
+      height: var(--tenH);
+      display:block;
+      filter: drop-shadow(0 8px 12px rgba(2,6,23,.10));
+      user-select:none;
+    }
+    .cubeSvg{
+      width: var(--oneS);
+      height: var(--oneS);
+      display:block;
+      filter: drop-shadow(0 8px 12px rgba(2,6,23,.08));
+      user-select:none;
+    }
+
+    .pvCard{
+      border-radius: 24px;
+      overflow:hidden;
+      border:2px solid #cbd5e1;
+      background:#fff;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      margin-top: 2px;
+    }
+    .pvCell{
+      padding: 8px 8px 8px;
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      align-items:center;
+      justify-content:center;
+      min-height: 84px;
+    }
+    .pvCell.hundreds{ background: linear-gradient(180deg, #ffd3e3 0%, var(--cardH) 100%); }
+    .pvCell.tens{ background: linear-gradient(180deg, #ffd08a 0%, var(--cardT) 100%); }
+    .pvCell.ones{ background: linear-gradient(180deg, #9bdcff 0%, var(--cardO) 100%); }
+
+    .pvLabel{
+      font-weight: 900;
+      font-size: 21px;
+      letter-spacing:.3px;
+      text-shadow: 0 2px 0 rgba(255,255,255,.35);
+    }
+
+    .pvValue{
+      width: 58px;
+      height: 42px;
+      border-radius: 14px;
+      border: 3px solid rgba(2,6,23,.12);
+      background: rgba(255,255,255,.75);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 26px;
+      font-weight: 900;
+    }
+    .pvValue.editable{
+      border-color: var(--inputLine);
+      background: var(--input);
+    }
+    .pvInput{
+      width:100%;
+      height:100%;
+      border:0;
+      outline:none;
+      background:transparent;
+      text-align:center;
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .answers{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px 6px;
+      background:#fff;
+      box-shadow: var(--shadow);
+    }
+
+    .row{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap: 10px;
+      font-size: 21px;
+      font-weight: 900;
+      margin: 5px 0;
+    }
+    .row .label{ font-size: 21px; font-weight: 900; margin-right: 2px; }
+
+    .blank{
+      width: 118px;
+      height: 50px;
+      border-radius: 16px;
+      border: 3px solid var(--inputLine);
+      background: var(--input);
+      font-size: 28px;
+      font-weight: 900;
+      text-align:center;
+      outline:none;
+    }
+    .blank.good{ border-color:#16a34a; box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+    .blank.bad{ border-color:#ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,.14); }
+
+    .pvValue.good{ border-color:#16a34a !important; box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+    .pvValue.bad{ border-color:#ef4444 !important; box-shadow: 0 0 0 4px rgba(239,68,68,.14); }
+
+    .btnRow{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top: 6px;
+    }
+    .btn{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius: 14px;
+      padding: 9px 12px;
+      font-weight: 900;
+      cursor:pointer;
+      box-shadow: 0 10px 20px rgba(2,6,23,.08);
+      user-select:none;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: transparent;
+      background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+      color:#fff;
+    }
+    .btn.toggle-on{
+      border-color:#16a34a;
+      box-shadow: 0 10px 20px rgba(2,6,23,.08), 0 0 0 4px rgba(34,197,94,.12);
+    }
+    .msg{ font-weight: 800; color: var(--muted); font-size: 14px; }
+
+    .credit{
+      text-align:right;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Drag & drop ordering */
+    .orderWrap{
+      width:100%;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      margin-top: 0;
+    }
+    .orderTop{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap: 10px;
+      flex-wrap:wrap;
+    }
+    .orderHint{
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--muted);
+    }
+    .orderHint .lock{
+      font-weight: 900;
+      color: rgba(15,23,42,.75);
+      margin-left: 8px;
+    }
+
+    .tiles{
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      align-items:center;
+      min-height: 52px;
+    }
+    .tile{
+      width: 98px;
+      height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+      border: 2px solid #cbd5e1;
+      box-shadow: 0 10px 18px rgba(2,6,23,.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 26px;
+      font-weight: 900;
+      cursor: grab;
+      user-select:none;
+      touch-action:none;
+    }
+    .tile:active{ cursor: grabbing; transform: translateY(1px); }
+    .tile.dragging{ opacity:.5; }
+
+    /* tiles hidden until gate correct */
+    .tile.masked{
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border-color:#dbe3ee;
+      color: rgba(15,23,42,.55);
+      cursor: not-allowed;
+      box-shadow: 0 10px 18px rgba(2,6,23,.06);
+    }
+
+    .slots{
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .slot{
+      width: 112px;
+      height: 50px;
+      border-radius: 16px;
+      border: 3px dashed rgba(155,191,135,.9);
+      background: rgba(232,246,223,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 26px;
+      font-weight: 900;
+      color: rgba(15,23,42,.88);
+      user-select:none;
+    }
+    .slot.filled{
+      border-style: solid;
+      background: var(--input);
+    }
+    .slot.over{ box-shadow: 0 0 0 4px rgba(34,197,94,.14); }
+    .slot.good{ border-color:#16a34a; box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+    .slot.bad{ border-color:#ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,.14); }
+
+    /* Teacher drawer */
+    .drawerOverlay{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,0);
+      display:none;
+      z-index: 50;
+    }
+    .drawer{
+      position:fixed; top:0; right:0; height:100%;
+      width: var(--drawerW);
+      background:#fff;
+      border-left:1px solid var(--line);
+      box-shadow: -20px 0 60px rgba(2,6,23,.25);
+      transform: translateX(100%);
+      transition: transform .22s ease;
+      z-index: 60;
+      display:flex;
+      flex-direction:column;
+    }
+    .drawerOverlay.show{ display:block; }
+    .drawer.show{ transform: translateX(0); }
+
+    .drawerTop{
+      position:sticky; top:0;
+      background:#fff;
+      border-bottom:1px solid var(--line);
+      padding: 12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      z-index:2;
+    }
+    .drawerTop h2{ margin:0; font-size: 16px; letter-spacing:.2px; }
+    .closeBtn{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-weight: 900;
+      cursor:pointer;
+    }
+    .drawerBody{ padding: 14px; overflow:auto; }
+
+    .field{
+      border:1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background:#fafafa;
+    }
+    .field label{ display:block; font-weight: 900; margin-bottom: 6px; }
+    .help{ color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 6px; }
+    .numRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .setNum{
+      width: 120px;
+      height: 46px;
+      border-radius: 12px;
+      border:1px solid #cbd5e1;
+      padding: 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+      outline:none;
+      background:#fff;
+    }
+
+    .toggleRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding: 10px 0 2px;
+    }
+    .toggleRow span{ font-weight: 900; }
+
+    .switch{
+      appearance:none;
+      width: 54px;
+      height: 30px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      border:1px solid #cbd5e1;
+      position:relative;
+      cursor:pointer;
+      outline:none;
+    }
+    .switch::after{
+      content:"";
+      width: 24px; height: 24px;
+      border-radius:999px;
+      background:#fff;
+      box-shadow: 0 8px 18px rgba(2,6,23,.18);
+      position:absolute;
+      left: 3px; top: 2px;
+      transition: transform .18s ease;
+    }
+    .switch:checked{ background: #22c55e; border-color:#16a34a; }
+    .switch:checked::after{ transform: translateX(24px); }
+
+    .sliderRow{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items:center;
+      margin-top: 8px;
+    }
+    input[type="range"]{ width:100%; }
+    .pill{
+      font-weight:900;
+      font-size:12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border:1px solid #cbd5e1;
+      background:#fff;
+      white-space:nowrap;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ Ones block: yellow already -->
+  <template id="tplOne">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56.5 64" aria-hidden="true" focusable="false">
+      <defs>
+        <style>
+          .cls-1 { fill: #f7b12b; }
+          .cls-2 { fill: #c97e00; }
+          .cls-3 { fill: #e48f00; }
+          .cls-4 { fill: #fff; }
+        </style>
+      </defs>
+      <polygon class="cls-2" points="0 16 0 48 28.25 64 28.25 32 0 16"/>
+      <polygon class="cls-3" points="28.25 0 0 16 28.25 32 56.5 16 28.25 0"/>
+      <polygon class="cls-1" points="56.5 16 28.25 32 28.25 64 56.5 48 56.5 16"/>
+      <polygon class="cls-4" points="28.25 33.15 1 17.73 1.5 16.86 28.25 32 55 16.86 55.5 17.73 28.25 33.15"/>
+    </svg>
+  </template>
+
+  <!-- ✅ Tens block: changed to yellow -->
+  <template id="tplTen">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 39.18 206" aria-hidden="true" focusable="false">
+      <defs>
+        <style>
+          .cls-1 { fill: #f7b12b; }   /* right face */
+          .cls-2 { fill: #c97e00; }   /* left face */
+          .cls-3 { fill: #e48f00; }   /* top face */
+          .cls-4 { fill: #fff; }
+        </style>
+      </defs>
+      <polygon class="cls-2" points="0 10.3 0 195.7 19.59 206 19.59 20.6 0 10.3"/>
+      <polygon class="cls-3" points="19.59 0 0 10.3 19.59 20.6 39.18 10.3 19.59 0"/>
+      <polygon class="cls-1" points="39.18 10.3 19.59 20.6 19.59 206 39.18 195.7 39.18 10.3"/>
+      <g>
+        <polygon class="cls-4" points="19.59 21.74 1 11.95 1.46 11.06 19.59 20.6 37.72 11.06 38.18 11.95 19.59 21.74"/>
+        <polygon class="cls-4" points="19.59 40.24 1 30.45 1.46 29.56 19.59 39.1 37.72 29.56 38.18 30.45 19.59 40.24"/>
+        <polygon class="cls-4" points="19.59 58.74 1 48.95 1.46 48.06 19.59 57.6 37.72 48.06 38.18 48.95 19.59 58.74"/>
+        <polygon class="cls-4" points="19.59 77.24 1 67.45 1.46 66.56 19.59 76.1 37.72 66.56 38.18 67.45 19.59 77.24"/>
+        <polygon class="cls-4" points="19.59 95.74 1 85.95 1.46 85.06 19.59 94.6 37.72 85.06 38.18 85.95 19.59 95.74"/>
+        <polygon class="cls-4" points="19.59 114.24 1 104.45 1.46 103.56 19.59 113.1 37.72 103.56 38.18 104.45 19.59 114.24"/>
+        <polygon class="cls-4" points="19.59 132.74 1 122.95 1.46 122.06 19.59 131.6 37.72 122.06 38.18 122.95 19.59 132.74"/>
+        <polygon class="cls-4" points="19.59 151.24 1 141.45 1.46 140.56 19.59 150.1 37.72 140.56 38.18 141.45 19.59 151.24"/>
+        <polygon class="cls-4" points="19.59 169.74 1 159.95 1.46 159.06 19.59 168.6 37.72 159.06 38.18 159.95 19.59 169.74"/>
+        <polygon class="cls-4" points="19.59 188.24 1 178.45 1.46 177.56 19.59 187.1 37.72 177.56 38.18 178.45 19.59 188.24"/>
+      </g>
+    </svg>
+  </template>
+
+  <div class="viewport">
+    <div class="stage" id="stage">
+      <div class="wrap">
+        <div class="topbar">
+          <div class="titleLine">
+            <div class="titleText">Compare</div>
+            <div class="hdrBlank" id="hdr0">???</div>
+            <div class="titleText">,</div>
+            <div class="hdrBlank" id="hdr1">???</div>
+            <div class="titleText">and</div>
+            <div class="hdrBlank" id="hdr2">???</div>
+            <div class="titleText">.</div>
+          </div>
+          <button class="settingsBtn" id="openSettings">⚙️ Teacher Settings</button>
+        </div>
+
+        <!-- ✅ NEW: compare by place value numbers (table), like your screenshot -->
+        <div class="pvCompareWrap" id="pvCompareWrap" aria-label="Place value comparison table">
+          <table class="pvCompareTable" aria-label="Place value table">
+            <thead>
+              <tr>
+                <th class="colNum"> </th>
+                <th class="colH">Hundreds</th>
+                <th class="colT">Tens</th>
+                <th class="colO">Ones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="numCell" id="pvRowNum0">—</td>
+                <td id="pvRowH0">—</td>
+                <td id="pvRowT0">—</td>
+                <td id="pvRowO0">—</td>
+              </tr>
+              <tr>
+                <td class="numCell" id="pvRowNum1">—</td>
+                <td id="pvRowH1">—</td>
+                <td id="pvRowT1">—</td>
+                <td id="pvRowO1">—</td>
+              </tr>
+              <tr>
+                <td class="numCell" id="pvRowNum2">—</td>
+                <td id="pvRowH2">—</td>
+                <td id="pvRowT2">—</td>
+                <td id="pvRowO2">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grid">
+          <div class="side">
+            <div class="blocks">
+              <div class="hundredsArea" id="hund0"></div>
+              <div class="tensArea" id="tens0"></div>
+              <div class="onesArea" id="ones0"></div>
+            </div>
+            <div class="pvCard">
+              <div class="pvCell hundreds">
+                <div class="pvLabel">Hundreds</div>
+                <div class="pvValue" id="pvH0"></div>
+              </div>
+              <div class="pvCell tens">
+                <div class="pvLabel">Tens</div>
+                <div class="pvValue" id="pvT0"></div>
+              </div>
+              <div class="pvCell ones">
+                <div class="pvLabel">Ones</div>
+                <div class="pvValue" id="pvO0"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="side">
+            <div class="blocks">
+              <div class="hundredsArea" id="hund1"></div>
+              <div class="tensArea" id="tens1"></div>
+              <div class="onesArea" id="ones1"></div>
+            </div>
+            <div class="pvCard">
+              <div class="pvCell hundreds">
+                <div class="pvLabel">Hundreds</div>
+                <div class="pvValue" id="pvH1"></div>
+              </div>
+              <div class="pvCell tens">
+                <div class="pvLabel">Tens</div>
+                <div class="pvValue" id="pvT1"></div>
+              </div>
+              <div class="pvCell ones">
+                <div class="pvLabel">Ones</div>
+                <div class="pvValue" id="pvO1"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="side">
+            <div class="blocks">
+              <div class="hundredsArea" id="hund2"></div>
+              <div class="tensArea" id="tens2"></div>
+              <div class="onesArea" id="ones2"></div>
+            </div>
+            <div class="pvCard">
+              <div class="pvCell hundreds">
+                <div class="pvLabel">Hundreds</div>
+                <div class="pvValue" id="pvH2"></div>
+              </div>
+              <div class="pvCell tens">
+                <div class="pvLabel">Tens</div>
+                <div class="pvValue" id="pvT2"></div>
+              </div>
+              <div class="pvCell ones">
+                <div class="pvLabel">Ones</div>
+                <div class="pvValue" id="pvO2"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="answers">
+          <div class="row">
+            <span class="label">(a)</span>
+            <input class="blank" id="greatest" inputmode="numeric" maxlength="3">
+            <span>is the greatest number.</span>
+          </div>
+
+          <div class="row">
+            <span class="label">(b)</span>
+            <input class="blank" id="smallest" inputmode="numeric" maxlength="3">
+            <span>is the smallest number.</span>
+          </div>
+
+          <div class="row" style="margin-top:8px">
+            <span class="label">(c)</span>
+            <span>Arrange these numbers in order.</span>
+          </div>
+
+          <div class="orderWrap">
+            <div class="orderTop">
+              <div class="orderHint" id="orderHint">
+                Begin with the smallest.
+                <span class="lock" id="lockHint">Check (a) and (b) to reveal the numbers.</span>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap">
+                <button class="btn" id="orderClearBtn" title="Clear the order slots">Clear order</button>
+              </div>
+            </div>
+
+            <div class="tiles" id="tiles"></div>
+
+            <div class="slots" id="slots">
+              <div class="slot" data-slot="0" aria-label="Order slot 1">?</div>
+              <div class="slot" data-slot="1" aria-label="Order slot 2">?</div>
+              <div class="slot" data-slot="2" aria-label="Order slot 3">?</div>
+            </div>
+          </div>
+
+          <div class="btnRow">
+            <!-- ✅ CHANGED: label will auto-switch (see syncQuickButtons) -->
+            <button class="btn primary" id="checkABBtn">Check (a)(b)</button>
+            <button class="btn primary" id="checkOrderBtn">Check order (c)</button>
+
+            <!-- ✅ NEW BUTTON: Blocks ➜ Place Value Numbers -->
+            <button class="btn" id="pvModeBtn" title="Hide blocks and compare using place value digits only">Compare by Place Value</button>
+
+            <button class="btn" id="quickRandomBtn" title="New random numbers">Random</button>
+            <button class="btn" id="quickHeaderBtn" title="Toggle header reveal">Reveal header</button>
+            <button class="btn" id="quickPVBtn" title="Toggle Hundreds/Tens/Ones reveal">Reveal H/T/O</button>
+
+            <button class="btn" id="clearBtn">Clear</button>
+            <span class="msg" id="msg"></span>
+          </div>
+
+          <div class="credit">Designed by Lim Kim Sze © 2026</div>
+        </div>
+
+        <button class="floatGear" id="openSettings2" aria-label="Open teacher settings">⚙️</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="drawerOverlay" id="overlay" tabindex="-1" aria-hidden="true"></div>
+  <aside class="drawer" id="drawer" aria-label="Teacher Settings Panel">
+    <div class="drawerTop">
+      <h2>Teacher Settings</h2>
+      <button class="closeBtn" id="closeSettings">Close ✕</button>
+    </div>
+    <div class="drawerBody">
+      <div class="field">
+        <label>Set the three numbers (100–999)</label>
+        <div class="numRow">
+          <input class="setNum" id="set0" type="number" min="100" max="999" step="1" value="219">
+          <input class="setNum" id="set1" type="number" min="100" max="999" step="1" value="129">
+          <input class="setNum" id="set2" type="number" min="100" max="999" step="1" value="191">
+          <button class="btn" id="applyBtn">Apply</button>
+          <button class="btn" id="randomBtn">Random</button>
+        </div>
+        <div class="help">If any numbers repeat, they will be nudged so all 3 are different.</div>
+      </div>
+
+      <div class="field">
+        <div class="toggleRow">
+          <span>Reveal numbers in header</span>
+          <input class="switch" id="revealHeader" type="checkbox">
+        </div>
+        <div class="toggleRow">
+          <span>Reveal Hundreds/Tens/Ones values in cards</span>
+          <input class="switch" id="revealPV" type="checkbox">
+        </div>
+        <div class="help">If OFF, pupils type Hundreds/Tens/Ones into the card boxes.</div>
+      </div>
+
+      <div class="field">
+        <div class="toggleRow">
+          <span>Order direction (smallest → greatest)</span>
+          <input class="switch" id="orderSmallToBig" type="checkbox" checked>
+        </div>
+        <div class="help">If OFF, pupils order greatest → smallest.</div>
+      </div>
+
+      <div class="field">
+        <label>Block sizes (auto-fit clamps to keep ALL blocks inside)</label>
+
+        <div class="sliderRow">
+          <input id="hundWRange" type="range" min="34" max="84" step="1" value="58">
+          <span class="pill">Hundreds: <span id="hundWVal">58</span>px</span>
+        </div>
+        <div class="help">Hundreds are arranged as 5 on the left and 4 on the right.</div>
+
+        <div class="sliderRow" style="margin-top:10px">
+          <input id="tenWRange" type="range" min="8" max="22" step="1" value="12">
+          <span class="pill">Tens width: <span id="tenWVal">12</span>px</span>
+        </div>
+        <div class="help">If too big to fit 9 tens, the app will auto-reduce.</div>
+
+        <div class="sliderRow" style="margin-top:10px">
+          <input id="oneSRange" type="range" min="12" max="26" step="1" value="16">
+          <span class="pill">Ones size: <span id="oneSVal">16</span>px</span>
+        </div>
+        <div class="help">If too big to fit 9 ones, the app will auto-reduce (5 left, 4 right).</div>
+      </div>
+
+      <div class="field">
+        <label>Quick reset (teacher)</label>
+        <button class="btn" id="teacherClear">Clear pupil inputs</button>
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const BASE_W = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--baseW')) || 980;
+    const BASE_H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--baseH')) || 740;
+    const stage = document.getElementById('stage');
+
+    const overlay = document.getElementById('overlay');
+    const drawer = document.getElementById('drawer');
+
+    const TEN_ASPECT = 206.0 / 39.18;
+    const HUND_ASPECT = 118.0 / 181.21; // height / width from your SVG viewBox
+    const GAP = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')) || 6;
+
+    /* ✅ Hundreds block SVG, recolored to yellow (all blocks = yellow) */
+    const SVG_HUNDRED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 181.21 118.00">
+<defs>
+      <clipPath id="hundred-clip-top"><polygon points="90.60,4.00 177.21,54.00 90.60,104.00 4.00,54.00"/></clipPath>
+      <clipPath id="hundred-clip-right"><polygon points="177.21,64.00 90.60,114.00 90.60,104.00 177.21,54.00"/></clipPath>
+      <clipPath id="hundred-clip-left"><polygon points="4.00,64.00 90.60,114.00 90.60,104.00 4.00,54.00"/></clipPath>
+    </defs>
+
+    <!-- Faces (yellow palette) -->
+    <polygon points="4.00,64.00 90.60,114.00 90.60,104.00 4.00,54.00" fill="#c97e00"/>
+    <polygon points="177.21,64.00 90.60,114.00 90.60,104.00 177.21,54.00" fill="#f7b12b"/>
+    <polygon points="90.60,4.00 177.21,54.00 90.60,104.00 4.00,54.00" fill="#ffd27a"/>
+
+    <!-- Grid lines (clipped to each face) -->
+    <path d="M 4.00 64.00 L 4.00 54.00 M 12.66 69.00 L 12.66 59.00 M 21.32 74.00 L 21.32 64.00 M 29.98 79.00 L 29.98 69.00 M 38.64 84.00 L 38.64 74.00 M 47.30 89.00 L 47.30 79.00 M 55.96 94.00 L 55.96 84.00 M 64.62 99.00 L 64.62 89.00 M 73.28 104.00 L 73.28 94.00 M 81.94 109.00 L 81.94 99.00 M 90.60 114.00 L 90.60 104.00 M 4.00 64.00 L 90.60 114.00 M 4.00 54.00 L 90.60 104.00" clip-path="url(#hundred-clip-left)" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M 177.21 64.00 L 177.21 54.00 M 168.54 69.00 L 168.54 59.00 M 159.88 74.00 L 159.88 64.00 M 151.22 79.00 L 151.22 69.00 M 142.56 84.00 L 142.56 74.00 M 133.90 89.00 L 133.90 79.00 M 125.24 94.00 L 125.24 84.00 M 116.58 99.00 L 116.58 89.00 M 107.92 104.00 L 107.92 94.00 M 99.26 109.00 L 99.26 99.00 M 90.60 114.00 L 90.60 104.00 M 177.21 64.00 L 90.60 114.00 M 177.21 54.00 L 90.60 104.00" clip-path="url(#hundred-clip-right)" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M 90.60 4.00 L 4.00 54.00 M 99.26 9.00 L 12.66 59.00 M 107.92 14.00 L 21.32 64.00 M 116.58 19.00 L 29.98 69.00 M 125.24 24.00 L 38.64 74.00 M 133.90 29.00 L 47.30 79.00 M 142.56 34.00 L 55.96 84.00 M 151.22 39.00 L 64.62 89.00 M 159.88 44.00 L 73.28 94.00 M 168.54 49.00 L 81.94 99.00 M 177.21 54.00 L 90.60 104.00 M 90.60 4.00 L 177.21 54.00 M 81.94 9.00 L 168.54 59.00 M 73.28 14.00 L 159.88 64.00 M 64.62 19.00 L 151.22 69.00 M 55.96 24.00 L 142.56 74.00 M 47.30 29.00 L 133.90 79.00 M 38.64 34.00 L 125.24 84.00 M 29.98 39.00 L 116.58 89.00 M 21.32 44.00 L 107.92 94.00 M 12.66 49.00 L 99.26 99.00 M 4.00 54.00 L 90.60 104.00" clip-path="url(#hundred-clip-top)" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- Face outlines -->
+    <polygon points="4.00,64.00 90.60,114.00 90.60,104.00 4.00,54.00" fill="none" stroke="#ffffff" stroke-width="1.68"/>
+    <polygon points="177.21,64.00 90.60,114.00 90.60,104.00 177.21,54.00" fill="none" stroke="#ffffff" stroke-width="1.68"/>
+    <polygon points="90.60,4.00 177.21,54.00 90.60,104.00 4.00,54.00" fill="none" stroke="#ffffff" stroke-width="1.68"/>
+</svg>`;
+
+    function fitStage(){
+      const pad = 20;
+      const vw = Math.max(320, window.innerWidth - pad);
+      const vh = Math.max(320, window.innerHeight - pad);
+
+      const drawerOpen = document.body.classList.contains('drawer-open');
+      const dw = drawerOpen ? drawer.getBoundingClientRect().width : 0;
+      const availW = Math.max(320, vw - dw);
+
+      const s = Math.min(availW / BASE_W, vh / BASE_H);
+      stage.style.transform = `scale(${s})`;
+    }
+
+    window.addEventListener('resize', ()=>{
+      fitStage();
+      autoFitClampSizes();
+      applySizes(true);
+    });
+    window.addEventListener('orientationchange', ()=>{
+      fitStage();
+      autoFitClampSizes();
+      applySizes(true);
+    });
+
+    const tplTen = document.getElementById('tplTen');
+    const tplOne = document.getElementById('tplOne');
+
+    const hdrEls = [document.getElementById('hdr0'), document.getElementById('hdr1'), document.getElementById('hdr2')];
+
+    const hundEls = [document.getElementById('hund0'), document.getElementById('hund1'), document.getElementById('hund2')];
+    const tensEls = [document.getElementById('tens0'), document.getElementById('tens1'), document.getElementById('tens2')];
+    const onesEls = [document.getElementById('ones0'), document.getElementById('ones1'), document.getElementById('ones2')];
+
+    const pvH = [document.getElementById('pvH0'), document.getElementById('pvH1'), document.getElementById('pvH2')];
+    const pvT = [document.getElementById('pvT0'), document.getElementById('pvT1'), document.getElementById('pvT2')];
+    const pvO = [document.getElementById('pvO0'), document.getElementById('pvO1'), document.getElementById('pvO2')];
+
+    const greatestInp = document.getElementById('greatest');
+    const smallestInp = document.getElementById('smallest');
+    const msg = document.getElementById('msg');
+
+    const tilesEl = document.getElementById('tiles');
+    const slotsEl = document.getElementById('slots');
+    const slotEls = Array.from(slotsEl.querySelectorAll('.slot'));
+    const orderHint = document.getElementById('orderHint');
+    const lockHint = document.getElementById('lockHint');
+
+    const set0 = document.getElementById('set0');
+    const set1 = document.getElementById('set1');
+    const set2 = document.getElementById('set2');
+    const applyBtn = document.getElementById('applyBtn');
+    const randomBtn = document.getElementById('randomBtn');
+
+    const revealHeader = document.getElementById('revealHeader');
+    const revealPV = document.getElementById('revealPV');
+    const orderSmallToBig = document.getElementById('orderSmallToBig');
+    const teacherClear = document.getElementById('teacherClear');
+
+    const hundWRange = document.getElementById('hundWRange');
+    const tenWRange = document.getElementById('tenWRange');
+    const oneSRange = document.getElementById('oneSRange');
+    const hundWVal = document.getElementById('hundWVal');
+    const tenWVal = document.getElementById('tenWVal');
+    const oneSVal = document.getElementById('oneSVal');
+
+    const openSettings = document.getElementById('openSettings');
+    const openSettings2 = document.getElementById('openSettings2');
+    const closeSettings = document.getElementById('closeSettings');
+
+    const checkABBtn = document.getElementById('checkABBtn');
+    const checkOrderBtn = document.getElementById('checkOrderBtn');
+
+    const clearBtn = document.getElementById('clearBtn');
+    const orderClearBtn = document.getElementById('orderClearBtn');
+
+    const quickRandomBtn = document.getElementById('quickRandomBtn');
+    const quickHeaderBtn = document.getElementById('quickHeaderBtn');
+    const quickPVBtn = document.getElementById('quickPVBtn');
+
+    /* ✅ NEW */
+    const pvModeBtn = document.getElementById('pvModeBtn');
+    let pvCompareMode = false;
+
+    /* ✅ PV table cells */
+    const pvRowNum = [document.getElementById('pvRowNum0'), document.getElementById('pvRowNum1'), document.getElementById('pvRowNum2')];
+    const pvRowH = [document.getElementById('pvRowH0'), document.getElementById('pvRowH1'), document.getElementById('pvRowH2')];
+    const pvRowT = [document.getElementById('pvRowT0'), document.getElementById('pvRowT1'), document.getElementById('pvRowT2')];
+    const pvRowO = [document.getElementById('pvRowO0'), document.getElementById('pvRowO1'), document.getElementById('pvRowO2')];
+
+    let nums = [219, 129, 191];
+    let revealHeaderNumbers = false;
+    let revealPVNumbers = false;
+    let orderIsSmallToBig = true;
+
+    // PV inputs when editable: pvInputs[i] = {h,t,o}
+    let pvInputs = [{h:null,t:null,o:null},{h:null,t:null,o:null},{h:null,t:null,o:null}];
+
+    // tiles hidden until gate correct
+    let tilesRevealed = false;
+
+    function clamp100to999(n){
+      n = Number(n);
+      if (!Number.isFinite(n)) return 100;
+      n = Math.round(n);
+      if (n < 100) n = 100;
+      if (n > 999) n = 999;
+      return n;
+    }
+
+    function splitHTO(n){
+      const h = Math.floor(n/100);
+      const t = Math.floor((n%100)/10);
+      const o = n % 10;
+      return { hundreds: h, tens: t, ones: o };
+    }
+
+    function sanitizeDigits(val, maxLen){
+      const s = String(val ?? '').trim();
+      if (!s) return '';
+      return s.replace(/[^\d]/g,'').slice(0, maxLen);
+    }
+
+    function cloneSvgFromTemplate(tpl, className){
+      const frag = tpl.content.cloneNode(true);
+      const svg = frag.querySelector('svg');
+      svg.classList.add(className);
+      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+      return svg;
+    }
+
+    // create a new hundred svg with unique clipPath ids (prevents id collisions)
+    function makeHundredSvg(){
+      const uid = 'h' + Math.random().toString(16).slice(2) + Date.now().toString(16);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(SVG_HUNDRED, 'image/svg+xml');
+      const svg = doc.documentElement;
+
+      const withId = svg.querySelectorAll('[id]');
+      withId.forEach(el=>{
+        const id = el.getAttribute('id') || '';
+        if (id.startsWith('hundred-')){
+          el.setAttribute('id', id + '-' + uid);
+        }
+      });
+
+      const all = svg.querySelectorAll('*');
+      all.forEach(el=>{
+        const cp = el.getAttribute('clip-path');
+        if (cp && cp.includes('url(#hundred-')){
+          el.setAttribute('clip-path', cp.replace(/url\(#(hundred-[^)]+)\)/g, (m, g1)=>`url(#${g1}-${uid})`));
+        }
+      });
+
+      svg.classList.add('hundSvg');
+      svg.setAttribute('aria-hidden','true');
+      svg.setAttribute('focusable','false');
+      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+      return document.importNode(svg, true);
+    }
+
+    function makeAllDifferent(arr){
+      const out = arr.map(clamp100to999);
+      const seen = new Set();
+      for (let i=0; i<out.length; i++){
+        let v = out[i];
+        let guard = 0;
+        while (seen.has(v) && guard < 1200){
+          v = v === 999 ? 100 : v + 1;
+          guard++;
+        }
+        out[i] = v;
+        seen.add(v);
+      }
+      const seen2 = new Set();
+      for (let i=0; i<out.length; i++){
+        let v = out[i];
+        let guard = 0;
+        while (seen2.has(v) && guard < 1200){
+          v = v === 999 ? 100 : v + 1;
+          guard++;
+        }
+        out[i] = v;
+        seen2.add(v);
+      }
+      return out;
+    }
+
+    /* Auto-fit clamps */
+    function autoFitClampSizes(){
+      const minHundW = Math.min(...hundEls.map(el=> el.clientWidth || 1));
+      const minHundH = Math.min(...hundEls.map(el=> el.clientHeight || 1));
+      const minTensW = Math.min(...tensEls.map(el=> el.clientWidth || 1));
+      const minTensH = Math.min(...tensEls.map(el=> el.clientHeight || 1));
+      const minOnesW = Math.min(...onesEls.map(el=> el.clientWidth || 1));
+      const minOnesH = Math.min(...onesEls.map(el=> el.clientHeight || 1));
+
+      const padW = 10, padH = 12;
+
+      // Hundreds: 2 columns (5 + 4)
+      {
+        const availW = Math.max(1, minHundW - padW);
+        const availH = Math.max(1, minHundH - padH);
+
+        const maxHundW_byWidth = Math.floor((availW - GAP) / 2);
+        const maxHundW_byHeight = Math.floor((availH - 4*GAP) / (5*HUND_ASPECT));
+        let maxHundW = Math.max(34, Math.min(84, maxHundW_byWidth, maxHundW_byHeight));
+
+        const h = Math.max(34, Math.min(84, Number(hundWRange.value)));
+        if (h > maxHundW) hundWRange.value = String(maxHundW);
+      }
+
+      // Tens
+      {
+        const availTW = Math.max(1, minTensW - padW);
+        const availTH = Math.max(1, minTensH - padH);
+
+        const maxTenW_byWidth = Math.floor((availTW - 8*GAP) / 9);
+        const maxTenW_byHeight = Math.floor(availTH / TEN_ASPECT);
+        let maxTenW = Math.max(8, Math.min(22, maxTenW_byWidth, maxTenW_byHeight));
+
+        const t = Math.max(8, Math.min(22, Number(tenWRange.value)));
+        if (t > maxTenW) tenWRange.value = String(maxTenW);
+      }
+
+      // Ones: 2 columns (5 + 4)
+      {
+        const availOW = Math.max(1, minOnesW - padW);
+        const availOH = Math.max(1, minOnesH - padH);
+
+        const maxOneS_byWidth = Math.floor((availOW - GAP) / 2);
+        const maxOneS_byHeight = Math.floor((availOH - 4*GAP) / 5);
+        let maxOneS = Math.max(12, Math.min(26, maxOneS_byWidth, maxOneS_byHeight));
+
+        const o = Math.max(12, Math.min(26, Number(oneSRange.value)));
+        if (o > maxOneS) oneSRange.value = String(maxOneS);
+      }
+    }
+
+    function applySizes(skipClamp=false){
+      if (!skipClamp) autoFitClampSizes();
+
+      const hundW = Math.max(34, Math.min(84, Number(hundWRange.value)));
+      const hundH = Math.round(hundW * HUND_ASPECT);
+
+      const tenW = Math.max(8, Math.min(22, Number(tenWRange.value)));
+      const oneS = Math.max(12, Math.min(26, Number(oneSRange.value)));
+      const tenH = Math.round(tenW * TEN_ASPECT);
+
+      document.documentElement.style.setProperty('--hundW', hundW + 'px');
+      document.documentElement.style.setProperty('--hundH', hundH + 'px');
+      document.documentElement.style.setProperty('--tenW', tenW + 'px');
+      document.documentElement.style.setProperty('--tenH', tenH + 'px');
+      document.documentElement.style.setProperty('--oneS', oneS + 'px');
+
+      hundWVal.textContent = hundW;
+      tenWVal.textContent = tenW;
+      oneSVal.textContent = oneS;
+
+      for (let i=0; i<3; i++){
+        renderBlocks(hundEls[i], tensEls[i], onesEls[i], nums[i]);
+      }
+    }
+
+    function renderHeader(){
+      for (let i=0; i<3; i++){
+        hdrEls[i].textContent = revealHeaderNumbers ? String(nums[i]) : '???';
+      }
+    }
+
+    /* ✅ NEW: render PV comparison table (numbers only) */
+    function renderPVCompareTable(){
+      for (let i=0; i<3; i++){
+        const sp = splitHTO(nums[i]);
+        pvRowNum[i].textContent = String(nums[i]);
+        pvRowH[i].textContent = sp.hundreds;
+        pvRowT[i].textContent = sp.tens;
+        pvRowO[i].textContent = sp.ones;
+      }
+    }
+
+    function renderBlocks(hundredsContainer, tensContainer, onesContainer, n){
+      hundredsContainer.innerHTML = '';
+      tensContainer.innerHTML = '';
+      onesContainer.innerHTML = '';
+
+      const { hundreds, tens, ones } = splitHTO(n);
+
+      // Hundreds: 2 columns (5 left, 4 right)
+      const hColL = document.createElement('div');
+      hColL.className = 'colStack';
+      const hColR = document.createElement('div');
+      hColR.className = 'colStack';
+
+      const leftH = Math.min(5, hundreds);
+      const rightH = Math.max(0, hundreds - leftH);
+
+      for (let i=0; i<leftH; i++) hColL.appendChild(makeHundredSvg());
+      for (let i=0; i<rightH; i++) hColR.appendChild(makeHundredSvg());
+
+      hundredsContainer.appendChild(hColL);
+      hundredsContainer.appendChild(hColR);
+
+      // Tens (yellow)
+      for (let i=0; i<tens; i++){
+        tensContainer.appendChild(cloneSvgFromTemplate(tplTen, 'rodSvg'));
+      }
+
+      // Ones (yellow)
+      const oColL = document.createElement('div');
+      oColL.className = 'colStack';
+      const oColR = document.createElement('div');
+      oColR.className = 'colStack';
+
+      const leftO = Math.min(5, ones);
+      const rightO = Math.max(0, ones - leftO);
+
+      for (let i=0; i<leftO; i++) oColL.appendChild(cloneSvgFromTemplate(tplOne, 'cubeSvg'));
+      for (let i=0; i<rightO; i++) oColR.appendChild(cloneSvgFromTemplate(tplOne, 'cubeSvg'));
+
+      onesContainer.appendChild(oColL);
+      onesContainer.appendChild(oColR);
+    }
+
+    function setPVBox(el, mode, valueOrPlaceholder, maxLen){
+      el.classList.remove('editable');
+      el.innerHTML = '';
+
+      if (mode === 'reveal'){
+        el.textContent = valueOrPlaceholder;
+        return null;
+      }
+
+      el.classList.add('editable');
+      const inp = document.createElement('input');
+      inp.className = 'pvInput';
+      inp.inputMode = 'numeric';
+      inp.maxLength = maxLen;
+      inp.placeholder = valueOrPlaceholder;
+
+      inp.addEventListener('input', ()=>{
+        const cleaned = sanitizeDigits(inp.value, maxLen);
+        if (inp.value !== cleaned) inp.value = cleaned;
+      });
+
+      el.appendChild(inp);
+      return inp;
+    }
+
+    function renderPV(){
+      [...pvH, ...pvT, ...pvO].forEach(el => el.classList.remove('good','bad'));
+      pvInputs = [{h:null,t:null,o:null},{h:null,t:null,o:null},{h:null,t:null,o:null}];
+
+      for (let i=0; i<3; i++){
+        const sp = splitHTO(nums[i]);
+        if (revealPVNumbers){
+          setPVBox(pvH[i], 'reveal', sp.hundreds, 1);
+          setPVBox(pvT[i], 'reveal', sp.tens, 1);
+          setPVBox(pvO[i], 'reveal', sp.ones, 1);
+        } else {
+          pvInputs[i].h = setPVBox(pvH[i], 'edit', '', 1);
+          pvInputs[i].t = setPVBox(pvT[i], 'edit', '', 1);
+          pvInputs[i].o = setPVBox(pvO[i], 'edit', '', 1);
+        }
+      }
+    }
+
+    // ----- ordering -----
+    function clearOrderMarks(){
+      slotEls.forEach(s=> s.classList.remove('good','bad','over'));
+    }
+
+    function setSlotDisplay(slot){
+      const filled = !!slot.dataset.value;
+      if (!filled){
+        slot.textContent = '?';
+        slot.classList.remove('filled');
+        return;
+      }
+      slot.classList.add('filled');
+      slot.textContent = slot.dataset.value;
+    }
+
+    function clearOrderSlots(){
+      clearOrderMarks();
+      slotEls.forEach(s=>{
+        s.dataset.value = '';
+        setSlotDisplay(s);
+      });
+      Array.from(tilesEl.querySelectorAll('.tile')).forEach(t=> t.classList.remove('dragging'));
+    }
+
+    function currentExpectedOrder(){
+      const sorted = nums.slice().sort((a,b)=>a-b);
+      return orderIsSmallToBig ? sorted : sorted.slice().reverse();
+    }
+
+    function updateOrderHint(){
+      orderHint.childNodes[0].textContent = orderIsSmallToBig ? 'Begin with the smallest. ' : 'Begin with the greatest. ';
+    }
+
+    function applyTileMaskState(tileEl){
+      if (tilesRevealed){
+        tileEl.classList.remove('masked');
+        tileEl.textContent = tileEl.dataset.value;
+        tileEl.draggable = true;
+      } else {
+        tileEl.classList.add('masked');
+        tileEl.textContent = '???';
+        tileEl.draggable = false;
+      }
+      lockHint.style.display = tilesRevealed ? 'none' : 'inline';
+    }
+
+    function refreshTileMasking(){
+      Array.from(tilesEl.querySelectorAll('.tile')).forEach(applyTileMaskState);
+    }
+
+    function buildTiles(){
+      tilesEl.innerHTML = '';
+      const shuffled = nums.slice().sort(()=> Math.random()-0.5);
+
+      for (const n of shuffled){
+        const d = document.createElement('div');
+        d.className = 'tile';
+        d.dataset.value = String(n);
+
+        applyTileMaskState(d);
+
+        d.addEventListener('dragstart', (e)=>{
+          if (!tilesRevealed){
+            e.preventDefault();
+            return;
+          }
+          d.classList.add('dragging');
+          e.dataTransfer.setData('text/plain', d.dataset.value);
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        d.addEventListener('dragend', ()=> d.classList.remove('dragging'));
+
+        tilesEl.appendChild(d);
+      }
+
+      clearOrderSlots();
+    }
+
+    function initSlotsDnD(){
+      slotEls.forEach(slot=>{
+        slot.addEventListener('dragover', (e)=>{
+          if (!tilesRevealed) return;
+          e.preventDefault();
+          slot.classList.add('over');
+          e.dataTransfer.dropEffect = 'move';
+        });
+        slot.addEventListener('dragleave', ()=> slot.classList.remove('over'));
+        slot.addEventListener('drop', (e)=>{
+          if (!tilesRevealed) return;
+          e.preventDefault();
+          slot.classList.remove('over');
+
+          const val = sanitizeDigits(e.dataTransfer.getData('text/plain'), 3);
+          if (!val) return;
+
+          slotEls.forEach(s=>{
+            if (s !== slot && s.dataset.value === val){
+              s.dataset.value = '';
+              setSlotDisplay(s);
+            }
+          });
+
+          slot.dataset.value = val;
+          setSlotDisplay(slot);
+        });
+      });
+    }
+
+    function readOrderSlots(){
+      return slotEls.map(s => s.dataset.value ? Number(s.dataset.value) : null);
+    }
+
+    // ----- marking / checks -----
+    function markInput(el, ok){
+      el.classList.remove('good','bad');
+      el.classList.add(ok ? 'good' : 'bad');
+    }
+    function markPVBox(el, ok){
+      el.classList.remove('good','bad');
+      el.classList.add(ok ? 'good' : 'bad');
+    }
+
+    function clearMarks(){
+      [greatestInp, smallestInp].forEach(el=> el.classList.remove('good','bad'));
+      [...pvH, ...pvT, ...pvO].forEach(el=> el.classList.remove('good','bad'));
+      clearOrderMarks();
+      msg.textContent = '';
+    }
+
+    function clearInputsOnly(){
+      [greatestInp, smallestInp].forEach(el=> el.value = '');
+      if (!revealPVNumbers){
+        pvInputs.forEach(p=>{
+          if (p.h) p.h.value = '';
+          if (p.t) p.t.value = '';
+          if (p.o) p.o.value = '';
+        });
+      }
+      clearOrderSlots();
+      clearMarks();
+      tilesRevealed = false;
+      refreshTileMasking();
+    }
+
+    function checkABPV(){
+      clearMarks();
+
+      const greatest = Math.max(...nums);
+      const smallest = Math.min(...nums);
+
+      const g = sanitizeDigits(greatestInp.value, 3);
+      const s = sanitizeDigits(smallestInp.value, 3);
+
+      const okG = g !== '' && Number(g) === greatest;
+      const okS = s !== '' && Number(s) === smallest;
+
+      markInput(greatestInp, okG);
+      markInput(smallestInp, okS);
+
+      // ✅ PV is required ONLY when:
+      // - not in Compare-by-Place-Value mode, AND
+      // - PV cards are NOT revealed (so pupils must type H/T/O)
+      const pvRequired = (!pvCompareMode && !revealPVNumbers);
+
+      let pvOk = true;
+      if (pvRequired){
+        for (let i=0; i<3; i++){
+          const sp = splitHTO(nums[i]);
+
+          const hVal = pvInputs[i].h ? sanitizeDigits(pvInputs[i].h.value, 1) : '';
+          const tVal = pvInputs[i].t ? sanitizeDigits(pvInputs[i].t.value, 1) : '';
+          const oVal = pvInputs[i].o ? sanitizeDigits(pvInputs[i].o.value, 1) : '';
+
+          const okH = hVal !== '' && Number(hVal) === sp.hundreds;
+          const okT = tVal !== '' && Number(tVal) === sp.tens;
+          const okO = oVal !== '' && Number(oVal) === sp.ones;
+
+          markPVBox(pvH[i], okH);
+          markPVBox(pvT[i], okT);
+          markPVBox(pvO[i], okO);
+
+          pvOk = pvOk && okH && okT && okO;
+        }
+      }
+
+      const gateOk = okG && okS && (pvRequired ? pvOk : true);
+
+      if (gateOk){
+        if (!tilesRevealed){
+          tilesRevealed = true;
+          refreshTileMasking();
+          msg.textContent = '✅ Good! Now drag the numbers for (c) and press "Check order (c)".';
+        } else {
+          msg.textContent = pvRequired ? '✅ (a), (b) and place value are correct.' : '✅ (a) and (b) are correct.';
+        }
+      } else {
+        if (pvRequired && !pvOk){
+          msg.textContent = 'Try again. Fill in the Hundreds, Tens and Ones correctly.';
+        } else {
+          msg.textContent = 'Try again. Find the greatest and smallest.';
+        }
+      }
+    }
+
+    function checkOrder(){
+      clearOrderMarks();
+
+      if (!tilesRevealed){
+        const pvRequired = (!pvCompareMode && !revealPVNumbers);
+        msg.textContent = pvRequired
+          ? 'Finish (a), (b) and place value first. Then check to reveal the numbers.'
+          : 'Finish (a) and (b) first. Then check to reveal the numbers.';
+        return;
+      }
+
+      const expected = currentExpectedOrder();
+      const placed = readOrderSlots();
+
+      let orderOk = true;
+      for (let i=0; i<3; i++){
+        const filled = placed[i] != null;
+        const ok = filled && placed[i] === expected[i];
+
+        slotEls[i].classList.remove('good','bad');
+        slotEls[i].classList.add(ok ? 'good' : 'bad');
+
+        setSlotDisplay(slotEls[i]);
+        orderOk = orderOk && ok;
+      }
+
+      msg.textContent = orderOk ? '✅ Well done!' : 'Try again. Check the order in (c).';
+    }
+
+    [greatestInp, smallestInp].forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        const cleaned = sanitizeDigits(inp.value, 3);
+        if (inp.value !== cleaned) inp.value = cleaned;
+      });
+    });
+
+    // ----- settings / numbers -----
+    function applyNumbers(){
+      nums = makeAllDifferent([set0.value, set1.value, set2.value]);
+      set0.value = nums[0];
+      set1.value = nums[1];
+      set2.value = nums[2];
+      renderAll();
+    }
+
+    function randomizeNumbers(){
+      const pool = new Set();
+      while (pool.size < 3) pool.add(100 + Math.floor(Math.random()*900));
+      nums = Array.from(pool);
+
+      set0.value = nums[0];
+      set1.value = nums[1];
+      set2.value = nums[2];
+      renderAll();
+    }
+
+    function setRevealHeader(on){
+      revealHeaderNumbers = !!on;
+      revealHeader.checked = revealHeaderNumbers;
+      renderHeader();
+      syncQuickButtons();
+    }
+
+    function setRevealPV(on){
+      revealPVNumbers = !!on;
+      revealPV.checked = revealPVNumbers;
+      renderPV();
+      [greatestInp, smallestInp].forEach(el=> el.value = '');
+      clearMarks();
+
+      tilesRevealed = false;
+      refreshTileMasking();
+      clearOrderSlots();
+      syncQuickButtons();
+    }
+
+    function setOrderDirectionSmallToBig(on){
+      orderIsSmallToBig = !!on;
+      orderSmallToBig.checked = orderIsSmallToBig;
+      updateOrderHint();
+      clearOrderSlots();
+      clearOrderMarks();
+      msg.textContent = '';
+    }
+
+    function syncQuickButtons(){
+      quickHeaderBtn.classList.toggle('toggle-on', revealHeaderNumbers);
+      quickPVBtn.classList.toggle('toggle-on', revealPVNumbers);
+
+      quickHeaderBtn.textContent = revealHeaderNumbers ? 'Header: ON' : 'Header: OFF';
+      quickPVBtn.textContent = revealPVNumbers ? 'H/T/O: ON' : 'H/T/O: OFF';
+
+      pvModeBtn.classList.toggle('toggle-on', pvCompareMode);
+      pvModeBtn.textContent = pvCompareMode ? 'Compare by Place Value: ON' : 'Compare by Place Value';
+
+      // ✅ KEY CHANGE: Button label (circled in red) becomes "Check (a)(b)" when PV-Compare is ON,
+      // otherwise it shows the reminder when PV typing is required.
+      const pvRequired = (!pvCompareMode && !revealPVNumbers);
+      checkABBtn.textContent = pvRequired ? 'Check (a)(b)+PV' : 'Check (a)(b)';
+      lockHint.textContent = pvRequired
+        ? 'Check (a), (b) and place value to reveal the numbers.'
+        : 'Check (a) and (b) to reveal the numbers.';
+    }
+
+    /* ✅ NEW: toggle blocks vs PV table */
+    function setPVCompareMode(on){
+      pvCompareMode = !!on;
+      document.body.classList.toggle('pvcompare', pvCompareMode);
+      renderPVCompareTable();
+
+      // reset gate each time you switch mode
+      tilesRevealed = false;
+      refreshTileMasking();
+      clearOrderSlots();
+      clearMarks();
+
+      syncQuickButtons();
+      fitStage();
+      autoFitClampSizes();
+      applySizes(true);
+    }
+
+    function renderAll(){
+      renderHeader();
+
+      autoFitClampSizes();
+      applySizes(true);
+
+      renderPV();
+      renderPVCompareTable();
+
+      updateOrderHint();
+
+      tilesRevealed = false;
+      buildTiles();
+      refreshTileMasking();
+
+      clearMarks();
+      greatestInp.value = '';
+      smallestInp.value = '';
+
+      syncQuickButtons();
+    }
+
+    // ----- drawer open/close -----
+    function openDrawer(){
+      overlay.classList.add('show');
+      drawer.classList.add('show');
+      overlay.setAttribute('aria-hidden','false');
+      document.body.classList.add('drawer-open');
+      fitStage();
+      autoFitClampSizes();
+      applySizes(true);
+    }
+    function closeDrawer(){
+      overlay.classList.remove('show');
+      drawer.classList.remove('show');
+      overlay.setAttribute('aria-hidden','true');
+      document.body.classList.remove('drawer-open');
+      fitStage();
+      autoFitClampSizes();
+      applySizes(true);
+    }
+
+    openSettings.addEventListener('click', openDrawer);
+    openSettings2.addEventListener('click', openDrawer);
+    closeSettings.addEventListener('click', closeDrawer);
+    overlay.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeDrawer(); });
+
+    // ----- events -----
+    revealHeader.addEventListener('change', ()=> setRevealHeader(revealHeader.checked));
+    revealPV.addEventListener('change', ()=> setRevealPV(revealPV.checked));
+    orderSmallToBig.addEventListener('change', ()=> setOrderDirectionSmallToBig(orderSmallToBig.checked));
+
+    applyBtn.addEventListener('click', applyNumbers);
+    randomBtn.addEventListener('click', randomizeNumbers);
+    teacherClear.addEventListener('click', clearInputsOnly);
+
+    checkABBtn.addEventListener('click', checkABPV);
+    checkOrderBtn.addEventListener('click', checkOrder);
+
+    clearBtn.addEventListener('click', clearInputsOnly);
+
+    orderClearBtn.addEventListener('click', ()=>{
+      clearOrderSlots();
+      clearOrderMarks();
+      msg.textContent = '';
+    });
+
+    quickRandomBtn.addEventListener('click', randomizeNumbers);
+    quickHeaderBtn.addEventListener('click', ()=> setRevealHeader(!revealHeaderNumbers));
+    quickPVBtn.addEventListener('click', ()=> setRevealPV(!revealPVNumbers));
+
+    /* ✅ NEW */
+    pvModeBtn.addEventListener('click', ()=> setPVCompareMode(!pvCompareMode));
+
+    hundWRange.addEventListener('input', ()=>{
+      autoFitClampSizes();
+      applySizes(true);
+    });
+    tenWRange.addEventListener('input', ()=>{
+      autoFitClampSizes();
+      applySizes(true);
+    });
+    oneSRange.addEventListener('input', ()=>{
+      autoFitClampSizes();
+      applySizes(true);
+    });
+
+    // init
+    set0.value = nums[0];
+    set1.value = nums[1];
+    set2.value = nums[2];
+
+    initSlotsDnD();
+    fitStage();
+
+    requestAnimationFrame(()=>{
+      autoFitClampSizes();
+      applySizes(true);
+      setOrderDirectionSmallToBig(true);
+      renderAll();
+      setPVCompareMode(false); // start with blocks
+    });
+  </script>
+<script src="https://cdn.counter.dev/script.js" data-id="825e93b6-ce99-40ef-8bcc-125f13297433" data-utcoffset="8"></script>
+</body>
+</html>
+```
