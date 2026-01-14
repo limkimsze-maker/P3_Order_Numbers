@@ -1,12 +1,11 @@
-```html
-<!doctype html> 
+<!doctype html>
 <html lang="en">
 <head>
 <link rel="icon" href="./kimsze_sharp16.ico?v=20260111a" sizes="any">
 <link rel="shortcut icon" href="./kimsze_sharp16.ico?v=20260111a">
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>P1 Compare 3 Numbers (100–999) — Blocks ➜ Place Value Numbers</title>
+  <title>P1 Compare 3 Numbers (1–9999) — Discs ➜ Place Value Numbers</title>
 
   <style>
     :root{
@@ -16,6 +15,7 @@
       --line:#e2e8f0;
 
       /* PV header tints */
+      --cardTh:#e7f4e7;  /* thousands */
       --cardH:#ffe4ee;   /* hundreds */
       --cardT:#ffedd5;   /* tens */
       --cardO:#e0f2fe;   /* ones */
@@ -32,15 +32,14 @@
       --baseW: 980;
       --baseH: 740;
 
-      /* teacher-controlled (but auto-clamped to FIT) */
-      --hundW: 58px;
-      /* --hundH auto-set in JS */
-      --tenW: 12px;
-      /* --tenH auto-set in JS */
-      --oneS: 16px;
+      /* ✅ discs (20% smaller baseline) */
+      --discBig: 45px;   /* thousands/hundreds */
+      --discMed: 42px;   /* tens */
+      --discSmall: 37px; /* ones */
 
-      /* layout gaps used in fit math */
-      --gap: 6px;
+      /* ✅ tighter gaps so 5+4 discs never clip */
+      --gap: 8px;        /* between the 2 stack columns */
+      --rowGap: 8px;     /* vertical gap between discs */
     }
 
     *{box-sizing:border-box}
@@ -97,7 +96,7 @@
       letter-spacing:.2px;
     }
     .hdrBlank{
-      width: 94px;
+      width: 104px;
       height: 48px;
       border-radius: 16px;
       border: 3px solid var(--inputLine);
@@ -146,7 +145,7 @@
     }
     .floatGear:active{ transform: translateY(1px); }
 
-    /* ====== NEW: Place Value comparison table (numbers only) ====== */
+    /* ====== Place Value comparison table (numbers only) ====== */
     .pvCompareWrap{
       display:none;
       border:1px solid var(--line);
@@ -156,7 +155,7 @@
       background:#fff;
     }
     body.pvcompare .pvCompareWrap{ display:block; }
-    body.pvcompare .grid{ display:none; } /* hide blocks when comparing by numbers */
+    body.pvcompare .grid{ display:none; } /* hide discs when comparing by numbers */
 
     .pvCompareTable{
       width:100%;
@@ -164,7 +163,7 @@
       border-spacing: 0;
       overflow:hidden;
       border-radius: 18px;
-      border: 4px solid #b6d38a; /* soft green like your example */
+      border: 4px solid #b6d38a;
       background:#fff;
       table-layout: fixed;
     }
@@ -176,26 +175,27 @@
     }
     .pvCompareTable th{
       padding: 10px 8px;
-      font-size: 24px;
+      font-size: 22px;
       color:#fff;
       letter-spacing:.2px;
     }
     .pvCompareTable th.colNum{ background:#7fbf5a; }
+    .pvCompareTable th.colTh{ background:#2f9e44; }
     .pvCompareTable th.colH{ background:#ff5aa6; }
     .pvCompareTable th.colT{ background:#ffb020; }
     .pvCompareTable th.colO{ background:#18b8ff; }
 
     .pvCompareTable td{
       padding: 10px 8px;
-      font-size: 30px;
+      font-size: 28px;
       background:#fff;
     }
     .pvCompareTable td.numCell{
-      font-size: 34px;
+      font-size: 32px;
       background: #f5ffe9;
     }
 
-    /* ====== 3-column blocks layout (existing) ====== */
+    /* ====== 3-column layout (same structure; each side is one column) ====== */
     .grid{
       flex: 1;
       display:grid;
@@ -205,132 +205,153 @@
       min-height: 0;
     }
 
+    /* ✅ CHANGED: side becomes a 2-row grid (discs centered + PV card) */
     .side{
       border:1px solid var(--line);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       background:#fff;
-      padding: 10px 10px 10px;
-      display:flex;
-      flex-direction:column;
+      padding: 10px;
       min-height:0;
+
+      display:grid;
+      grid-template-rows: 1fr auto;
+      gap: 8px;
     }
 
+    /* ✅ CHANGED: discs chart is centered (no scrolling, no clipping) */
     .blocks{
-      flex: 1;
       min-height: 0;
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
       gap: 10px;
-      align-items:stretch;
-      padding: 6px 6px 6px;
+
+      padding: 6px;
+
+      /* key: center the whole chart in the available space */
+      align-content: center;
+      justify-content: center;
+      justify-items: stretch;
     }
 
-    /* base ten blocks go UP (top-anchored) */
-    .hundredsArea, .tensArea, .onesArea{
+    .pvCol{
       border-radius: 14px;
-      background:#fff;
+      overflow:hidden;
+      border:1px solid rgba(2,6,23,.08);
       display:flex;
-      align-items:flex-start;
-      justify-content:flex-start;
-      padding: 6px 4px;
-      min-height: 170px;
+      flex-direction:column;
+      min-height: 0;
+      background:#fff;
+    }
+    .pvCol.th{ background: var(--cardTh); }
+    .pvCol.h { background: var(--cardH); }
+    .pvCol.t { background: var(--cardT); }
+    .pvCol.o { background: var(--cardO); }
+
+    /* two vertical stacks (5 left, 4 right), bottom-up */
+    .colInner{
+      flex: 1;
+      min-height: 0;
+
+      /* ✅ tighter padding + gap so 9 discs fit */
+      padding: 8px 6px;
+
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--gap);
+      align-items:end;
+      justify-items:center;
       overflow:hidden;
     }
-
-    /* Hundreds: two columns (5 left, 4 right) to save space */
-    .hundredsArea{
-      flex-direction: row;
-      justify-content:center;
-      gap: var(--gap);
-      align-items:flex-start;
-    }
-
-    /* Ones: two columns (5 left, 4 right) to save space */
-    .onesArea{
-      flex-direction: row;
-      justify-content:center;
-      gap: var(--gap);
-      align-items:flex-start;
-    }
-
-    .colStack{
+    .stackCol{
+      width:100%;
       display:flex;
-      flex-direction: column;
-      gap: var(--gap);
+      flex-direction: column-reverse;
+      gap: var(--rowGap);
       align-items:center;
       justify-content:flex-start;
+      min-height: 0;
     }
 
-    .tensArea{
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-content:flex-start;
-      gap: var(--gap);
+    /* Per-column default disc size (JS may auto-fit smaller) */
+    .pvCol.th .colInner{ --discS: var(--discBig); }
+    .pvCol.h  .colInner{ --discS: var(--discBig); }
+    .pvCol.t  .colInner{ --discS: var(--discMed); }
+    .pvCol.o  .colInner{ --discS: var(--discSmall); }
+
+    .disc{
+      width: var(--discS);
+      height: var(--discS);
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
       justify-content:center;
+      font-weight: 1000;
+      color: rgba(15,23,42,.95);
+      background: #fff;
+      border: 3px solid rgba(2,6,23,.12);
+      box-shadow: 0 10px 18px rgba(2,6,23,.10);
+      user-select:none;
+      flex: 0 0 auto;
+    }
+    .disc.th{ background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.10)), #37b24d; border-color: rgba(7,94,36,.35); }
+    .disc.h { background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.10)), #ff7ab6; border-color: rgba(136,22,74,.28); }
+    .disc.t { background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.10)), #f6a21a; border-color: rgba(122,73,0,.30); }
+    .disc.o { background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.10)), #4d8dff; border-color: rgba(0,49,120,.28); }
+    .disc span{
+      filter: drop-shadow(0 2px 0 rgba(255,255,255,.35));
+      font-size: clamp(12px, calc(var(--discS) * 0.34), 18px);
+      line-height: 1;
     }
 
-    .hundSvg{
-      width: var(--hundW);
-      height: var(--hundH);
-      display:block;
-      filter: drop-shadow(0 8px 12px rgba(2,6,23,.10));
-      user-select:none;
-    }
-    .rodSvg{
-      width: var(--tenW);
-      height: var(--tenH);
-      display:block;
-      filter: drop-shadow(0 8px 12px rgba(2,6,23,.10));
-      user-select:none;
-    }
-    .cubeSvg{
-      width: var(--oneS);
-      height: var(--oneS);
-      display:block;
-      filter: drop-shadow(0 8px 12px rgba(2,6,23,.08));
-      user-select:none;
-    }
-
+    /* PV Card: now 4 columns */
     .pvCard{
       border-radius: 24px;
       overflow:hidden;
       border:2px solid #cbd5e1;
       background:#fff;
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      margin-top: 2px;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      margin-top: 0;
     }
+
+    /* ✅ CHANGED: smaller PV card to free space (prevents disc clipping) */
     .pvCell{
-      padding: 8px 8px 8px;
+      padding: 6px 6px;
       display:flex;
       flex-direction:column;
-      gap: 6px;
+      gap: 5px;
       align-items:center;
       justify-content:center;
-      min-height: 84px;
+      min-height: 74px;
+      border-right: 1px solid rgba(15,23,42,.08);
     }
+    .pvCell:last-child{ border-right:0; }
+
+    .pvCell.thousands{ background: linear-gradient(180deg, #bff0c8 0%, var(--cardTh) 100%); }
     .pvCell.hundreds{ background: linear-gradient(180deg, #ffd3e3 0%, var(--cardH) 100%); }
     .pvCell.tens{ background: linear-gradient(180deg, #ffd08a 0%, var(--cardT) 100%); }
     .pvCell.ones{ background: linear-gradient(180deg, #9bdcff 0%, var(--cardO) 100%); }
 
     .pvLabel{
-      font-weight: 900;
-      font-size: 21px;
-      letter-spacing:.3px;
-      text-shadow: 0 2px 0 rgba(255,255,255,.35);
-    }
+  font-weight: 900;
+  font-size: 12px;      /* was 18px / 20px */
+  line-height: 1;    /* tighter so it doesn’t look tall */
+  letter-spacing: .1px;
+  text-shadow: 0 2px 0 rgba(255,255,255,.35);
+}
+
 
     .pvValue{
-      width: 58px;
-      height: 42px;
+      width: 52px;
+      height: 38px;
       border-radius: 14px;
       border: 3px solid rgba(2,6,23,.12);
       background: rgba(255,255,255,.75);
       display:flex;
       align-items:center;
       justify-content:center;
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 900;
     }
     .pvValue.editable{
@@ -344,7 +365,7 @@
       outline:none;
       background:transparent;
       text-align:center;
-      font-size: 26px;
+      font-size: 24px;
       font-weight: 900;
     }
 
@@ -368,7 +389,7 @@
     .row .label{ font-size: 21px; font-weight: 900; margin-right: 2px; }
 
     .blank{
-      width: 118px;
+      width: 140px;
       height: 50px;
       border-radius: 16px;
       border: 3px solid var(--inputLine);
@@ -454,7 +475,7 @@
       min-height: 52px;
     }
     .tile{
-      width: 98px;
+      width: 112px;
       height: 48px;
       border-radius: 16px;
       background: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
@@ -472,7 +493,6 @@
     .tile:active{ cursor: grabbing; transform: translateY(1px); }
     .tile.dragging{ opacity:.5; }
 
-    /* tiles hidden until gate correct */
     .tile.masked{
       background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
       border-color:#dbe3ee;
@@ -488,7 +508,7 @@
       align-items:center;
     }
     .slot{
-      width: 112px;
+      width: 122px;
       height: 50px;
       border-radius: 16px;
       border: 3px dashed rgba(155,191,135,.9);
@@ -564,7 +584,7 @@
     .help{ color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 6px; }
     .numRow{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .setNum{
-      width: 120px;
+      width: 140px;
       height: 46px;
       border-radius: 12px;
       border:1px solid #cbd5e1;
@@ -629,53 +649,6 @@
 </head>
 
 <body>
-  <!-- ✅ Ones block: yellow already -->
-  <template id="tplOne">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56.5 64" aria-hidden="true" focusable="false">
-      <defs>
-        <style>
-          .cls-1 { fill: #f7b12b; }
-          .cls-2 { fill: #c97e00; }
-          .cls-3 { fill: #e48f00; }
-          .cls-4 { fill: #fff; }
-        </style>
-      </defs>
-      <polygon class="cls-2" points="0 16 0 48 28.25 64 28.25 32 0 16"/>
-      <polygon class="cls-3" points="28.25 0 0 16 28.25 32 56.5 16 28.25 0"/>
-      <polygon class="cls-1" points="56.5 16 28.25 32 28.25 64 56.5 48 56.5 16"/>
-      <polygon class="cls-4" points="28.25 33.15 1 17.73 1.5 16.86 28.25 32 55 16.86 55.5 17.73 28.25 33.15"/>
-    </svg>
-  </template>
-
-  <!-- ✅ Tens block: changed to yellow -->
-  <template id="tplTen">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 39.18 206" aria-hidden="true" focusable="false">
-      <defs>
-        <style>
-          .cls-1 { fill: #f7b12b; }   /* right face */
-          .cls-2 { fill: #c97e00; }   /* left face */
-          .cls-3 { fill: #e48f00; }   /* top face */
-          .cls-4 { fill: #fff; }
-        </style>
-      </defs>
-      <polygon class="cls-2" points="0 10.3 0 195.7 19.59 206 19.59 20.6 0 10.3"/>
-      <polygon class="cls-3" points="19.59 0 0 10.3 19.59 20.6 39.18 10.3 19.59 0"/>
-      <polygon class="cls-1" points="39.18 10.3 19.59 20.6 19.59 206 39.18 195.7 39.18 10.3"/>
-      <g>
-        <polygon class="cls-4" points="19.59 21.74 1 11.95 1.46 11.06 19.59 20.6 37.72 11.06 38.18 11.95 19.59 21.74"/>
-        <polygon class="cls-4" points="19.59 40.24 1 30.45 1.46 29.56 19.59 39.1 37.72 29.56 38.18 30.45 19.59 40.24"/>
-        <polygon class="cls-4" points="19.59 58.74 1 48.95 1.46 48.06 19.59 57.6 37.72 48.06 38.18 48.95 19.59 58.74"/>
-        <polygon class="cls-4" points="19.59 77.24 1 67.45 1.46 66.56 19.59 76.1 37.72 66.56 38.18 67.45 19.59 77.24"/>
-        <polygon class="cls-4" points="19.59 95.74 1 85.95 1.46 85.06 19.59 94.6 37.72 85.06 38.18 85.95 19.59 95.74"/>
-        <polygon class="cls-4" points="19.59 114.24 1 104.45 1.46 103.56 19.59 113.1 37.72 103.56 38.18 104.45 19.59 114.24"/>
-        <polygon class="cls-4" points="19.59 132.74 1 122.95 1.46 122.06 19.59 131.6 37.72 122.06 38.18 122.95 19.59 132.74"/>
-        <polygon class="cls-4" points="19.59 151.24 1 141.45 1.46 140.56 19.59 150.1 37.72 140.56 38.18 141.45 19.59 151.24"/>
-        <polygon class="cls-4" points="19.59 169.74 1 159.95 1.46 159.06 19.59 168.6 37.72 159.06 38.18 159.95 19.59 169.74"/>
-        <polygon class="cls-4" points="19.59 188.24 1 178.45 1.46 177.56 19.59 187.1 37.72 177.56 38.18 178.45 19.59 188.24"/>
-      </g>
-    </svg>
-  </template>
-
   <div class="viewport">
     <div class="stage" id="stage">
       <div class="wrap">
@@ -692,12 +665,13 @@
           <button class="settingsBtn" id="openSettings">⚙️ Teacher Settings</button>
         </div>
 
-        <!-- ✅ NEW: compare by place value numbers (table), like your screenshot -->
+        <!-- compare by place value numbers (table) -->
         <div class="pvCompareWrap" id="pvCompareWrap" aria-label="Place value comparison table">
           <table class="pvCompareTable" aria-label="Place value table">
             <thead>
               <tr>
                 <th class="colNum"> </th>
+                <th class="colTh">Thousands</th>
                 <th class="colH">Hundreds</th>
                 <th class="colT">Tens</th>
                 <th class="colO">Ones</th>
@@ -706,18 +680,21 @@
             <tbody>
               <tr>
                 <td class="numCell" id="pvRowNum0">—</td>
+                <td id="pvRowTh0">—</td>
                 <td id="pvRowH0">—</td>
                 <td id="pvRowT0">—</td>
                 <td id="pvRowO0">—</td>
               </tr>
               <tr>
                 <td class="numCell" id="pvRowNum1">—</td>
+                <td id="pvRowTh1">—</td>
                 <td id="pvRowH1">—</td>
                 <td id="pvRowT1">—</td>
                 <td id="pvRowO1">—</td>
               </tr>
               <tr>
                 <td class="numCell" id="pvRowNum2">—</td>
+                <td id="pvRowTh2">—</td>
                 <td id="pvRowH2">—</td>
                 <td id="pvRowT2">—</td>
                 <td id="pvRowO2">—</td>
@@ -729,11 +706,16 @@
         <div class="grid">
           <div class="side">
             <div class="blocks">
-              <div class="hundredsArea" id="hund0"></div>
-              <div class="tensArea" id="tens0"></div>
-              <div class="onesArea" id="ones0"></div>
+              <div class="pvCol th"><div class="colInner" id="th0"></div></div>
+              <div class="pvCol h"><div class="colInner" id="hund0"></div></div>
+              <div class="pvCol t"><div class="colInner" id="tens0"></div></div>
+              <div class="pvCol o"><div class="colInner" id="ones0"></div></div>
             </div>
             <div class="pvCard">
+              <div class="pvCell thousands">
+                <div class="pvLabel">Thousands</div>
+                <div class="pvValue" id="pvTh0"></div>
+              </div>
               <div class="pvCell hundreds">
                 <div class="pvLabel">Hundreds</div>
                 <div class="pvValue" id="pvH0"></div>
@@ -751,11 +733,16 @@
 
           <div class="side">
             <div class="blocks">
-              <div class="hundredsArea" id="hund1"></div>
-              <div class="tensArea" id="tens1"></div>
-              <div class="onesArea" id="ones1"></div>
+              <div class="pvCol th"><div class="colInner" id="th1"></div></div>
+              <div class="pvCol h"><div class="colInner" id="hund1"></div></div>
+              <div class="pvCol t"><div class="colInner" id="tens1"></div></div>
+              <div class="pvCol o"><div class="colInner" id="ones1"></div></div>
             </div>
             <div class="pvCard">
+              <div class="pvCell thousands">
+                <div class="pvLabel">Thousands</div>
+                <div class="pvValue" id="pvTh1"></div>
+              </div>
               <div class="pvCell hundreds">
                 <div class="pvLabel">Hundreds</div>
                 <div class="pvValue" id="pvH1"></div>
@@ -773,11 +760,16 @@
 
           <div class="side">
             <div class="blocks">
-              <div class="hundredsArea" id="hund2"></div>
-              <div class="tensArea" id="tens2"></div>
-              <div class="onesArea" id="ones2"></div>
+              <div class="pvCol th"><div class="colInner" id="th2"></div></div>
+              <div class="pvCol h"><div class="colInner" id="hund2"></div></div>
+              <div class="pvCol t"><div class="colInner" id="tens2"></div></div>
+              <div class="pvCol o"><div class="colInner" id="ones2"></div></div>
             </div>
             <div class="pvCard">
+              <div class="pvCell thousands">
+                <div class="pvLabel">Thousands</div>
+                <div class="pvValue" id="pvTh2"></div>
+              </div>
               <div class="pvCell hundreds">
                 <div class="pvLabel">Hundreds</div>
                 <div class="pvValue" id="pvH2"></div>
@@ -797,13 +789,13 @@
         <div class="answers">
           <div class="row">
             <span class="label">(a)</span>
-            <input class="blank" id="greatest" inputmode="numeric" maxlength="3">
+            <input class="blank" id="greatest" inputmode="numeric" maxlength="4">
             <span>is the greatest number.</span>
           </div>
 
           <div class="row">
             <span class="label">(b)</span>
-            <input class="blank" id="smallest" inputmode="numeric" maxlength="3">
+            <input class="blank" id="smallest" inputmode="numeric" maxlength="4">
             <span>is the smallest number.</span>
           </div>
 
@@ -833,16 +825,14 @@
           </div>
 
           <div class="btnRow">
-            <!-- ✅ CHANGED: label will auto-switch (see syncQuickButtons) -->
             <button class="btn primary" id="checkABBtn">Check (a)(b)</button>
             <button class="btn primary" id="checkOrderBtn">Check order (c)</button>
 
-            <!-- ✅ NEW BUTTON: Blocks ➜ Place Value Numbers -->
-            <button class="btn" id="pvModeBtn" title="Hide blocks and compare using place value digits only">Compare by Place Value</button>
+            <button class="btn" id="pvModeBtn" title="Hide discs and compare using place value digits only">Compare by Place Value</button>
 
             <button class="btn" id="quickRandomBtn" title="New random numbers">Random</button>
             <button class="btn" id="quickHeaderBtn" title="Toggle header reveal">Reveal header</button>
-            <button class="btn" id="quickPVBtn" title="Toggle Hundreds/Tens/Ones reveal">Reveal H/T/O</button>
+            <button class="btn" id="quickPVBtn" title="Toggle place value reveal">Reveal PV</button>
 
             <button class="btn" id="clearBtn">Clear</button>
             <span class="msg" id="msg"></span>
@@ -864,11 +854,11 @@
     </div>
     <div class="drawerBody">
       <div class="field">
-        <label>Set the three numbers (100–999)</label>
+        <label>Set the three numbers (1–9999)</label>
         <div class="numRow">
-          <input class="setNum" id="set0" type="number" min="100" max="999" step="1" value="219">
-          <input class="setNum" id="set1" type="number" min="100" max="999" step="1" value="129">
-          <input class="setNum" id="set2" type="number" min="100" max="999" step="1" value="191">
+          <input class="setNum" id="set0" type="number" min="1" max="9999" step="1" value="3250">
+          <input class="setNum" id="set1" type="number" min="1" max="9999" step="1" value="2500">
+          <input class="setNum" id="set2" type="number" min="1" max="9999" step="1" value="1910">
           <button class="btn" id="applyBtn">Apply</button>
           <button class="btn" id="randomBtn">Random</button>
         </div>
@@ -881,10 +871,10 @@
           <input class="switch" id="revealHeader" type="checkbox">
         </div>
         <div class="toggleRow">
-          <span>Reveal Hundreds/Tens/Ones values in cards</span>
+          <span>Reveal Thousands/Hundreds/Tens/Ones values in cards</span>
           <input class="switch" id="revealPV" type="checkbox">
         </div>
-        <div class="help">If OFF, pupils type Hundreds/Tens/Ones into the card boxes.</div>
+        <div class="help">If OFF, pupils type each digit into the PV boxes.</div>
       </div>
 
       <div class="field">
@@ -896,25 +886,24 @@
       </div>
 
       <div class="field">
-        <label>Block sizes (auto-fit clamps to keep ALL blocks inside)</label>
+        <label>Disc sizes (auto-fit keeps discs inside PV chart)</label>
 
         <div class="sliderRow">
-          <input id="hundWRange" type="range" min="34" max="84" step="1" value="58">
-          <span class="pill">Hundreds: <span id="hundWVal">58</span>px</span>
+          <input id="discBigRange" type="range" min="34" max="66" step="1" value="45">
+          <span class="pill">Big: <span id="discBigVal">45</span>px</span>
         </div>
-        <div class="help">Hundreds are arranged as 5 on the left and 4 on the right.</div>
 
         <div class="sliderRow" style="margin-top:10px">
-          <input id="tenWRange" type="range" min="8" max="22" step="1" value="12">
-          <span class="pill">Tens width: <span id="tenWVal">12</span>px</span>
+          <input id="discMedRange" type="range" min="30" max="62" step="1" value="42">
+          <span class="pill">Medium: <span id="discMedVal">42</span>px</span>
         </div>
-        <div class="help">If too big to fit 9 tens, the app will auto-reduce.</div>
 
         <div class="sliderRow" style="margin-top:10px">
-          <input id="oneSRange" type="range" min="12" max="26" step="1" value="16">
-          <span class="pill">Ones size: <span id="oneSVal">16</span>px</span>
+          <input id="discSmallRange" type="range" min="24" max="58" step="1" value="37">
+          <span class="pill">Small: <span id="discSmallVal">37</span>px</span>
         </div>
-        <div class="help">If too big to fit 9 ones, the app will auto-reduce (5 left, 4 right).</div>
+
+        <div class="help">Each place is stacked vertically: 5 discs on the left + 4 on the right.</div>
       </div>
 
       <div class="field">
@@ -932,34 +921,6 @@
     const overlay = document.getElementById('overlay');
     const drawer = document.getElementById('drawer');
 
-    const TEN_ASPECT = 206.0 / 39.18;
-    const HUND_ASPECT = 118.0 / 181.21; // height / width from your SVG viewBox
-    const GAP = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')) || 6;
-
-    /* ✅ Hundreds block SVG, recolored to yellow (all blocks = yellow) */
-    const SVG_HUNDRED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 181.21 118.00">
-<defs>
-      <clipPath id="hundred-clip-top"><polygon points="90.60,4.00 177.21,54.00 90.60,104.00 4.00,54.00"/></clipPath>
-      <clipPath id="hundred-clip-right"><polygon points="177.21,64.00 90.60,114.00 90.60,104.00 177.21,54.00"/></clipPath>
-      <clipPath id="hundred-clip-left"><polygon points="4.00,64.00 90.60,114.00 90.60,104.00 4.00,54.00"/></clipPath>
-    </defs>
-
-    <!-- Faces (yellow palette) -->
-    <polygon points="4.00,64.00 90.60,114.00 90.60,104.00 4.00,54.00" fill="#c97e00"/>
-    <polygon points="177.21,64.00 90.60,114.00 90.60,104.00 177.21,54.00" fill="#f7b12b"/>
-    <polygon points="90.60,4.00 177.21,54.00 90.60,104.00 4.00,54.00" fill="#ffd27a"/>
-
-    <!-- Grid lines (clipped to each face) -->
-    <path d="M 4.00 64.00 L 4.00 54.00 M 12.66 69.00 L 12.66 59.00 M 21.32 74.00 L 21.32 64.00 M 29.98 79.00 L 29.98 69.00 M 38.64 84.00 L 38.64 74.00 M 47.30 89.00 L 47.30 79.00 M 55.96 94.00 L 55.96 84.00 M 64.62 99.00 L 64.62 89.00 M 73.28 104.00 L 73.28 94.00 M 81.94 109.00 L 81.94 99.00 M 90.60 114.00 L 90.60 104.00 M 4.00 64.00 L 90.60 114.00 M 4.00 54.00 L 90.60 104.00" clip-path="url(#hundred-clip-left)" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
-    <path d="M 177.21 64.00 L 177.21 54.00 M 168.54 69.00 L 168.54 59.00 M 159.88 74.00 L 159.88 64.00 M 151.22 79.00 L 151.22 69.00 M 142.56 84.00 L 142.56 74.00 M 133.90 89.00 L 133.90 79.00 M 125.24 94.00 L 125.24 84.00 M 116.58 99.00 L 116.58 89.00 M 107.92 104.00 L 107.92 94.00 M 99.26 109.00 L 99.26 99.00 M 90.60 114.00 L 90.60 104.00 M 177.21 64.00 L 90.60 114.00 M 177.21 54.00 L 90.60 104.00" clip-path="url(#hundred-clip-right)" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
-    <path d="M 90.60 4.00 L 4.00 54.00 M 99.26 9.00 L 12.66 59.00 M 107.92 14.00 L 21.32 64.00 M 116.58 19.00 L 29.98 69.00 M 125.24 24.00 L 38.64 74.00 M 133.90 29.00 L 47.30 79.00 M 142.56 34.00 L 55.96 84.00 M 151.22 39.00 L 64.62 89.00 M 159.88 44.00 L 73.28 94.00 M 168.54 49.00 L 81.94 99.00 M 177.21 54.00 L 90.60 104.00 M 90.60 4.00 L 177.21 54.00 M 81.94 9.00 L 168.54 59.00 M 73.28 14.00 L 159.88 64.00 M 64.62 19.00 L 151.22 69.00 M 55.96 24.00 L 142.56 74.00 M 47.30 29.00 L 133.90 79.00 M 38.64 34.00 L 125.24 84.00 M 29.98 39.00 L 116.58 89.00 M 21.32 44.00 L 107.92 94.00 M 12.66 49.00 L 99.26 99.00 M 4.00 54.00 L 90.60 104.00" clip-path="url(#hundred-clip-top)" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
-
-    <!-- Face outlines -->
-    <polygon points="4.00,64.00 90.60,114.00 90.60,104.00 4.00,54.00" fill="none" stroke="#ffffff" stroke-width="1.68"/>
-    <polygon points="177.21,64.00 90.60,114.00 90.60,104.00 177.21,54.00" fill="none" stroke="#ffffff" stroke-width="1.68"/>
-    <polygon points="90.60,4.00 177.21,54.00 90.60,104.00 4.00,54.00" fill="none" stroke="#ffffff" stroke-width="1.68"/>
-</svg>`;
-
     function fitStage(){
       const pad = 20;
       const vw = Math.max(320, window.innerWidth - pad);
@@ -975,27 +936,26 @@
 
     window.addEventListener('resize', ()=>{
       fitStage();
-      autoFitClampSizes();
-      applySizes(true);
+      applyDiscSizes(true);
     });
     window.addEventListener('orientationchange', ()=>{
       fitStage();
-      autoFitClampSizes();
-      applySizes(true);
+      applyDiscSizes(true);
     });
-
-    const tplTen = document.getElementById('tplTen');
-    const tplOne = document.getElementById('tplOne');
 
     const hdrEls = [document.getElementById('hdr0'), document.getElementById('hdr1'), document.getElementById('hdr2')];
 
+    // disc areas per number i
+    const thEls   = [document.getElementById('th0'),   document.getElementById('th1'),   document.getElementById('th2')];
     const hundEls = [document.getElementById('hund0'), document.getElementById('hund1'), document.getElementById('hund2')];
     const tensEls = [document.getElementById('tens0'), document.getElementById('tens1'), document.getElementById('tens2')];
     const onesEls = [document.getElementById('ones0'), document.getElementById('ones1'), document.getElementById('ones2')];
 
-    const pvH = [document.getElementById('pvH0'), document.getElementById('pvH1'), document.getElementById('pvH2')];
-    const pvT = [document.getElementById('pvT0'), document.getElementById('pvT1'), document.getElementById('pvT2')];
-    const pvO = [document.getElementById('pvO0'), document.getElementById('pvO1'), document.getElementById('pvO2')];
+    // PV card boxes
+    const pvTh = [document.getElementById('pvTh0'), document.getElementById('pvTh1'), document.getElementById('pvTh2')];
+    const pvH  = [document.getElementById('pvH0'),  document.getElementById('pvH1'),  document.getElementById('pvH2')];
+    const pvT  = [document.getElementById('pvT0'),  document.getElementById('pvT1'),  document.getElementById('pvT2')];
+    const pvO  = [document.getElementById('pvO0'),  document.getElementById('pvO1'),  document.getElementById('pvO2')];
 
     const greatestInp = document.getElementById('greatest');
     const smallestInp = document.getElementById('smallest');
@@ -1018,12 +978,13 @@
     const orderSmallToBig = document.getElementById('orderSmallToBig');
     const teacherClear = document.getElementById('teacherClear');
 
-    const hundWRange = document.getElementById('hundWRange');
-    const tenWRange = document.getElementById('tenWRange');
-    const oneSRange = document.getElementById('oneSRange');
-    const hundWVal = document.getElementById('hundWVal');
-    const tenWVal = document.getElementById('tenWVal');
-    const oneSVal = document.getElementById('oneSVal');
+    // disc size sliders
+    const discBigRange = document.getElementById('discBigRange');
+    const discMedRange = document.getElementById('discMedRange');
+    const discSmallRange = document.getElementById('discSmallRange');
+    const discBigVal = document.getElementById('discBigVal');
+    const discMedVal = document.getElementById('discMedVal');
+    const discSmallVal = document.getElementById('discSmallVal');
 
     const openSettings = document.getElementById('openSettings');
     const openSettings2 = document.getElementById('openSettings2');
@@ -1039,41 +1000,42 @@
     const quickHeaderBtn = document.getElementById('quickHeaderBtn');
     const quickPVBtn = document.getElementById('quickPVBtn');
 
-    /* ✅ NEW */
     const pvModeBtn = document.getElementById('pvModeBtn');
     let pvCompareMode = false;
 
-    /* ✅ PV table cells */
+    // PV table cells
     const pvRowNum = [document.getElementById('pvRowNum0'), document.getElementById('pvRowNum1'), document.getElementById('pvRowNum2')];
-    const pvRowH = [document.getElementById('pvRowH0'), document.getElementById('pvRowH1'), document.getElementById('pvRowH2')];
-    const pvRowT = [document.getElementById('pvRowT0'), document.getElementById('pvRowT1'), document.getElementById('pvRowT2')];
-    const pvRowO = [document.getElementById('pvRowO0'), document.getElementById('pvRowO1'), document.getElementById('pvRowO2')];
+    const pvRowTh  = [document.getElementById('pvRowTh0'),  document.getElementById('pvRowTh1'),  document.getElementById('pvRowTh2')];
+    const pvRowH   = [document.getElementById('pvRowH0'),   document.getElementById('pvRowH1'),   document.getElementById('pvRowH2')];
+    const pvRowT   = [document.getElementById('pvRowT0'),   document.getElementById('pvRowT1'),   document.getElementById('pvRowT2')];
+    const pvRowO   = [document.getElementById('pvRowO0'),   document.getElementById('pvRowO1'),   document.getElementById('pvRowO2')];
 
-    let nums = [219, 129, 191];
+    let nums = [3250, 2500, 1910];
     let revealHeaderNumbers = false;
     let revealPVNumbers = false;
     let orderIsSmallToBig = true;
 
-    // PV inputs when editable: pvInputs[i] = {h,t,o}
-    let pvInputs = [{h:null,t:null,o:null},{h:null,t:null,o:null},{h:null,t:null,o:null}];
+    // PV inputs when editable: pvInputs[i] = {th,h,t,o}
+    let pvInputs = [{th:null,h:null,t:null,o:null},{th:null,h:null,t:null,o:null},{th:null,h:null,t:null,o:null}];
 
-    // tiles hidden until gate correct
     let tilesRevealed = false;
 
-    function clamp100to999(n){
+    function clamp1to9999(n){
       n = Number(n);
-      if (!Number.isFinite(n)) return 100;
+      if (!Number.isFinite(n)) return 1;
       n = Math.round(n);
-      if (n < 100) n = 100;
-      if (n > 999) n = 999;
+      if (n < 1) n = 1;
+      if (n > 9999) n = 9999;
       return n;
     }
 
-    function splitHTO(n){
-      const h = Math.floor(n/100);
-      const t = Math.floor((n%100)/10);
-      const o = n % 10;
-      return { hundreds: h, tens: t, ones: o };
+    function splitTHHO(n){
+      return {
+        th: Math.floor(n/1000),
+        h:  Math.floor((n%1000)/100),
+        t:  Math.floor((n%100)/10),
+        o:  n % 10
+      };
     }
 
     function sanitizeDigits(val, maxLen){
@@ -1082,145 +1044,106 @@
       return s.replace(/[^\d]/g,'').slice(0, maxLen);
     }
 
-    function cloneSvgFromTemplate(tpl, className){
-      const frag = tpl.content.cloneNode(true);
-      const svg = frag.querySelector('svg');
-      svg.classList.add(className);
-      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
-      return svg;
-    }
-
-    // create a new hundred svg with unique clipPath ids (prevents id collisions)
-    function makeHundredSvg(){
-      const uid = 'h' + Math.random().toString(16).slice(2) + Date.now().toString(16);
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(SVG_HUNDRED, 'image/svg+xml');
-      const svg = doc.documentElement;
-
-      const withId = svg.querySelectorAll('[id]');
-      withId.forEach(el=>{
-        const id = el.getAttribute('id') || '';
-        if (id.startsWith('hundred-')){
-          el.setAttribute('id', id + '-' + uid);
-        }
-      });
-
-      const all = svg.querySelectorAll('*');
-      all.forEach(el=>{
-        const cp = el.getAttribute('clip-path');
-        if (cp && cp.includes('url(#hundred-')){
-          el.setAttribute('clip-path', cp.replace(/url\(#(hundred-[^)]+)\)/g, (m, g1)=>`url(#${g1}-${uid})`));
-        }
-      });
-
-      svg.classList.add('hundSvg');
-      svg.setAttribute('aria-hidden','true');
-      svg.setAttribute('focusable','false');
-      svg.setAttribute('preserveAspectRatio','xMidYMid meet');
-      return document.importNode(svg, true);
-    }
-
     function makeAllDifferent(arr){
-      const out = arr.map(clamp100to999);
+      const out = arr.map(clamp1to9999);
       const seen = new Set();
       for (let i=0; i<out.length; i++){
         let v = out[i];
         let guard = 0;
-        while (seen.has(v) && guard < 1200){
-          v = v === 999 ? 100 : v + 1;
+        while (seen.has(v) && guard < 20000){
+          v = (v === 9999) ? 1 : v + 1;
           guard++;
         }
         out[i] = v;
         seen.add(v);
       }
-      const seen2 = new Set();
-      for (let i=0; i<out.length; i++){
-        let v = out[i];
-        let guard = 0;
-        while (seen2.has(v) && guard < 1200){
-          v = v === 999 ? 100 : v + 1;
-          guard++;
-        }
-        out[i] = v;
-        seen2.add(v);
-      }
       return out;
     }
 
-    /* Auto-fit clamps */
-    function autoFitClampSizes(){
-      const minHundW = Math.min(...hundEls.map(el=> el.clientWidth || 1));
-      const minHundH = Math.min(...hundEls.map(el=> el.clientHeight || 1));
-      const minTensW = Math.min(...tensEls.map(el=> el.clientWidth || 1));
-      const minTensH = Math.min(...tensEls.map(el=> el.clientHeight || 1));
-      const minOnesW = Math.min(...onesEls.map(el=> el.clientWidth || 1));
-      const minOnesH = Math.min(...onesEls.map(el=> el.clientHeight || 1));
-
-      const padW = 10, padH = 12;
-
-      // Hundreds: 2 columns (5 + 4)
-      {
-        const availW = Math.max(1, minHundW - padW);
-        const availH = Math.max(1, minHundH - padH);
-
-        const maxHundW_byWidth = Math.floor((availW - GAP) / 2);
-        const maxHundW_byHeight = Math.floor((availH - 4*GAP) / (5*HUND_ASPECT));
-        let maxHundW = Math.max(34, Math.min(84, maxHundW_byWidth, maxHundW_byHeight));
-
-        const h = Math.max(34, Math.min(84, Number(hundWRange.value)));
-        if (h > maxHundW) hundWRange.value = String(maxHundW);
-      }
-
-      // Tens
-      {
-        const availTW = Math.max(1, minTensW - padW);
-        const availTH = Math.max(1, minTensH - padH);
-
-        const maxTenW_byWidth = Math.floor((availTW - 8*GAP) / 9);
-        const maxTenW_byHeight = Math.floor(availTH / TEN_ASPECT);
-        let maxTenW = Math.max(8, Math.min(22, maxTenW_byWidth, maxTenW_byHeight));
-
-        const t = Math.max(8, Math.min(22, Number(tenWRange.value)));
-        if (t > maxTenW) tenWRange.value = String(maxTenW);
-      }
-
-      // Ones: 2 columns (5 + 4)
-      {
-        const availOW = Math.max(1, minOnesW - padW);
-        const availOH = Math.max(1, minOnesH - padH);
-
-        const maxOneS_byWidth = Math.floor((availOW - GAP) / 2);
-        const maxOneS_byHeight = Math.floor((availOH - 4*GAP) / 5);
-        let maxOneS = Math.max(12, Math.min(26, maxOneS_byWidth, maxOneS_byHeight));
-
-        const o = Math.max(12, Math.min(26, Number(oneSRange.value)));
-        if (o > maxOneS) oneSRange.value = String(maxOneS);
-      }
+    function makeDisc(kind, label){
+      const d = document.createElement('div');
+      d.className = `disc ${kind}`;
+      const sp = document.createElement('span');
+      sp.textContent = label;
+      d.appendChild(sp);
+      return d;
     }
 
-    function applySizes(skipClamp=false){
-      if (!skipClamp) autoFitClampSizes();
+    function getCssPx(varName, fallback){
+      const v = getComputedStyle(document.documentElement).getPropertyValue(varName);
+      const n = parseFloat(v);
+      return Number.isFinite(n) ? n : fallback;
+    }
 
-      const hundW = Math.max(34, Math.min(84, Number(hundWRange.value)));
-      const hundH = Math.round(hundW * HUND_ASPECT);
+    function fitDiscSizeForTwoCol(container, countL, countR, maxS){
+      if ((countL <= 0 && countR <= 0) || !container) return maxS;
 
-      const tenW = Math.max(8, Math.min(22, Number(tenWRange.value)));
-      const oneS = Math.max(12, Math.min(26, Number(oneSRange.value)));
-      const tenH = Math.round(tenW * TEN_ASPECT);
+      const styles = getComputedStyle(container);
+      const padX = (parseFloat(styles.paddingLeft)||0) + (parseFloat(styles.paddingRight)||0);
+      const padY = (parseFloat(styles.paddingTop)||0) + (parseFloat(styles.paddingBottom)||0);
 
-      document.documentElement.style.setProperty('--hundW', hundW + 'px');
-      document.documentElement.style.setProperty('--hundH', hundH + 'px');
-      document.documentElement.style.setProperty('--tenW', tenW + 'px');
-      document.documentElement.style.setProperty('--tenH', tenH + 'px');
-      document.documentElement.style.setProperty('--oneS', oneS + 'px');
+      const gapCol = getCssPx('--gap', 10);
+      const gapRow = getCssPx('--rowGap', 10);
 
-      hundWVal.textContent = hundW;
-      tenWVal.textContent = tenW;
-      oneSVal.textContent = oneS;
+      const availW = Math.max(20, container.clientWidth - padX - gapCol);
+      const maxByW = availW / 2;
 
-      for (let i=0; i<3; i++){
-        renderBlocks(hundEls[i], tensEls[i], onesEls[i], nums[i]);
-      }
+      const availH = Math.max(40, container.clientHeight - padY);
+      const byH = (c)=>{
+        if (c <= 0) return Infinity;
+        return (availH - (c - 1) * gapRow) / c;
+      };
+      const maxByH = Math.min(byH(countL), byH(countR));
+
+      const fit = Math.floor(Math.min(maxS, maxByW, maxByH));
+      return Math.max(18, fit);
+    }
+
+    function renderDiscs(container, count, kind, labelText){
+      container.innerHTML = '';
+
+      const colL = document.createElement('div');
+      colL.className = 'stackCol';
+      const colR = document.createElement('div');
+      colR.className = 'stackCol';
+      container.appendChild(colL);
+      container.appendChild(colR);
+
+      const leftCount = Math.min(5, count);
+      const rightCount = Math.max(0, count - 5);
+
+      const currentDiscS = getComputedStyle(container).getPropertyValue('--discS');
+      const maxS = Math.max(18, parseFloat(currentDiscS) || 40);
+
+      const fitS = fitDiscSizeForTwoCol(container, leftCount, rightCount, maxS);
+      container.style.setProperty('--discS', fitS + 'px');
+
+      for (let i=0; i<leftCount; i++) colL.appendChild(makeDisc(kind, labelText));
+      for (let i=0; i<rightCount; i++) colR.appendChild(makeDisc(kind, labelText));
+    }
+
+    function renderBlocksFor(i){
+      const sp = splitTHHO(nums[i]);
+      renderDiscs(thEls[i],   sp.th, 'th', '1000');
+      renderDiscs(hundEls[i], sp.h,  'h',  '100');
+      renderDiscs(tensEls[i], sp.t,  't',  '10');
+      renderDiscs(onesEls[i], sp.o,  'o',  '1');
+    }
+
+    function applyDiscSizes(skipRender=false){
+      const big = Math.max(34, Math.min(66, Number(discBigRange.value)));
+      const med = Math.max(30, Math.min(62, Number(discMedRange.value)));
+      const small = Math.max(24, Math.min(58, Number(discSmallRange.value)));
+
+      document.documentElement.style.setProperty('--discBig', big + 'px');
+      document.documentElement.style.setProperty('--discMed', med + 'px');
+      document.documentElement.style.setProperty('--discSmall', small + 'px');
+
+      discBigVal.textContent = big;
+      discMedVal.textContent = med;
+      discSmallVal.textContent = small;
+
+      for (let i=0;i<3;i++) renderBlocksFor(i);
     }
 
     function renderHeader(){
@@ -1229,58 +1152,15 @@
       }
     }
 
-    /* ✅ NEW: render PV comparison table (numbers only) */
     function renderPVCompareTable(){
       for (let i=0; i<3; i++){
-        const sp = splitHTO(nums[i]);
+        const sp = splitTHHO(nums[i]);
         pvRowNum[i].textContent = String(nums[i]);
-        pvRowH[i].textContent = sp.hundreds;
-        pvRowT[i].textContent = sp.tens;
-        pvRowO[i].textContent = sp.ones;
+        pvRowTh[i].textContent = sp.th;
+        pvRowH[i].textContent  = sp.h;
+        pvRowT[i].textContent  = sp.t;
+        pvRowO[i].textContent  = sp.o;
       }
-    }
-
-    function renderBlocks(hundredsContainer, tensContainer, onesContainer, n){
-      hundredsContainer.innerHTML = '';
-      tensContainer.innerHTML = '';
-      onesContainer.innerHTML = '';
-
-      const { hundreds, tens, ones } = splitHTO(n);
-
-      // Hundreds: 2 columns (5 left, 4 right)
-      const hColL = document.createElement('div');
-      hColL.className = 'colStack';
-      const hColR = document.createElement('div');
-      hColR.className = 'colStack';
-
-      const leftH = Math.min(5, hundreds);
-      const rightH = Math.max(0, hundreds - leftH);
-
-      for (let i=0; i<leftH; i++) hColL.appendChild(makeHundredSvg());
-      for (let i=0; i<rightH; i++) hColR.appendChild(makeHundredSvg());
-
-      hundredsContainer.appendChild(hColL);
-      hundredsContainer.appendChild(hColR);
-
-      // Tens (yellow)
-      for (let i=0; i<tens; i++){
-        tensContainer.appendChild(cloneSvgFromTemplate(tplTen, 'rodSvg'));
-      }
-
-      // Ones (yellow)
-      const oColL = document.createElement('div');
-      oColL.className = 'colStack';
-      const oColR = document.createElement('div');
-      oColR.className = 'colStack';
-
-      const leftO = Math.min(5, ones);
-      const rightO = Math.max(0, ones - leftO);
-
-      for (let i=0; i<leftO; i++) oColL.appendChild(cloneSvgFromTemplate(tplOne, 'cubeSvg'));
-      for (let i=0; i<rightO; i++) oColR.appendChild(cloneSvgFromTemplate(tplOne, 'cubeSvg'));
-
-      onesContainer.appendChild(oColL);
-      onesContainer.appendChild(oColR);
     }
 
     function setPVBox(el, mode, valueOrPlaceholder, maxLen){
@@ -1309,19 +1189,21 @@
     }
 
     function renderPV(){
-      [...pvH, ...pvT, ...pvO].forEach(el => el.classList.remove('good','bad'));
-      pvInputs = [{h:null,t:null,o:null},{h:null,t:null,o:null},{h:null,t:null,o:null}];
+      [...pvTh, ...pvH, ...pvT, ...pvO].forEach(el => el.classList.remove('good','bad'));
+      pvInputs = [{th:null,h:null,t:null,o:null},{th:null,h:null,t:null,o:null},{th:null,h:null,t:null,o:null}];
 
       for (let i=0; i<3; i++){
-        const sp = splitHTO(nums[i]);
+        const sp = splitTHHO(nums[i]);
         if (revealPVNumbers){
-          setPVBox(pvH[i], 'reveal', sp.hundreds, 1);
-          setPVBox(pvT[i], 'reveal', sp.tens, 1);
-          setPVBox(pvO[i], 'reveal', sp.ones, 1);
+          setPVBox(pvTh[i], 'reveal', sp.th, 1);
+          setPVBox(pvH[i],  'reveal', sp.h,  1);
+          setPVBox(pvT[i],  'reveal', sp.t,  1);
+          setPVBox(pvO[i],  'reveal', sp.o,  1);
         } else {
-          pvInputs[i].h = setPVBox(pvH[i], 'edit', '', 1);
-          pvInputs[i].t = setPVBox(pvT[i], 'edit', '', 1);
-          pvInputs[i].o = setPVBox(pvO[i], 'edit', '', 1);
+          pvInputs[i].th = setPVBox(pvTh[i], 'edit', '', 1);
+          pvInputs[i].h  = setPVBox(pvH[i],  'edit', '', 1);
+          pvInputs[i].t  = setPVBox(pvT[i],  'edit', '', 1);
+          pvInputs[i].o  = setPVBox(pvO[i],  'edit', '', 1);
         }
       }
     }
@@ -1419,7 +1301,7 @@
           e.preventDefault();
           slot.classList.remove('over');
 
-          const val = sanitizeDigits(e.dataTransfer.getData('text/plain'), 3);
+          const val = sanitizeDigits(e.dataTransfer.getData('text/plain'), 4);
           if (!val) return;
 
           slotEls.forEach(s=>{
@@ -1451,7 +1333,7 @@
 
     function clearMarks(){
       [greatestInp, smallestInp].forEach(el=> el.classList.remove('good','bad'));
-      [...pvH, ...pvT, ...pvO].forEach(el=> el.classList.remove('good','bad'));
+      [...pvTh, ...pvH, ...pvT, ...pvO].forEach(el=> el.classList.remove('good','bad'));
       clearOrderMarks();
       msg.textContent = '';
     }
@@ -1460,9 +1342,10 @@
       [greatestInp, smallestInp].forEach(el=> el.value = '');
       if (!revealPVNumbers){
         pvInputs.forEach(p=>{
-          if (p.h) p.h.value = '';
-          if (p.t) p.t.value = '';
-          if (p.o) p.o.value = '';
+          if (p.th) p.th.value = '';
+          if (p.h)  p.h.value = '';
+          if (p.t)  p.t.value = '';
+          if (p.o)  p.o.value = '';
         });
       }
       clearOrderSlots();
@@ -1477,8 +1360,8 @@
       const greatest = Math.max(...nums);
       const smallest = Math.min(...nums);
 
-      const g = sanitizeDigits(greatestInp.value, 3);
-      const s = sanitizeDigits(smallestInp.value, 3);
+      const g = sanitizeDigits(greatestInp.value, 4);
+      const s = sanitizeDigits(smallestInp.value, 4);
 
       const okG = g !== '' && Number(g) === greatest;
       const okS = s !== '' && Number(s) === smallest;
@@ -1486,29 +1369,32 @@
       markInput(greatestInp, okG);
       markInput(smallestInp, okS);
 
-      // ✅ PV is required ONLY when:
+      // PV is required ONLY when:
       // - not in Compare-by-Place-Value mode, AND
-      // - PV cards are NOT revealed (so pupils must type H/T/O)
+      // - PV cards are NOT revealed
       const pvRequired = (!pvCompareMode && !revealPVNumbers);
 
       let pvOk = true;
       if (pvRequired){
         for (let i=0; i<3; i++){
-          const sp = splitHTO(nums[i]);
+          const sp = splitTHHO(nums[i]);
 
-          const hVal = pvInputs[i].h ? sanitizeDigits(pvInputs[i].h.value, 1) : '';
-          const tVal = pvInputs[i].t ? sanitizeDigits(pvInputs[i].t.value, 1) : '';
-          const oVal = pvInputs[i].o ? sanitizeDigits(pvInputs[i].o.value, 1) : '';
+          const thVal = pvInputs[i].th ? sanitizeDigits(pvInputs[i].th.value, 1) : '';
+          const hVal  = pvInputs[i].h  ? sanitizeDigits(pvInputs[i].h.value,  1) : '';
+          const tVal  = pvInputs[i].t  ? sanitizeDigits(pvInputs[i].t.value,  1) : '';
+          const oVal  = pvInputs[i].o  ? sanitizeDigits(pvInputs[i].o.value,  1) : '';
 
-          const okH = hVal !== '' && Number(hVal) === sp.hundreds;
-          const okT = tVal !== '' && Number(tVal) === sp.tens;
-          const okO = oVal !== '' && Number(oVal) === sp.ones;
+          const okTh = thVal !== '' && Number(thVal) === sp.th;
+          const okH  = hVal  !== '' && Number(hVal)  === sp.h;
+          const okT  = tVal  !== '' && Number(tVal)  === sp.t;
+          const okO  = oVal  !== '' && Number(oVal)  === sp.o;
 
-          markPVBox(pvH[i], okH);
-          markPVBox(pvT[i], okT);
-          markPVBox(pvO[i], okO);
+          markPVBox(pvTh[i], okTh);
+          markPVBox(pvH[i],  okH);
+          markPVBox(pvT[i],  okT);
+          markPVBox(pvO[i],  okO);
 
-          pvOk = pvOk && okH && okT && okO;
+          pvOk = pvOk && okTh && okH && okT && okO;
         }
       }
 
@@ -1524,7 +1410,7 @@
         }
       } else {
         if (pvRequired && !pvOk){
-          msg.textContent = 'Try again. Fill in the Hundreds, Tens and Ones correctly.';
+          msg.textContent = 'Try again. Fill in Thousands, Hundreds, Tens and Ones correctly.';
         } else {
           msg.textContent = 'Try again. Find the greatest and smallest.';
         }
@@ -1562,7 +1448,7 @@
 
     [greatestInp, smallestInp].forEach(inp=>{
       inp.addEventListener('input', ()=>{
-        const cleaned = sanitizeDigits(inp.value, 3);
+        const cleaned = sanitizeDigits(inp.value, 4);
         if (inp.value !== cleaned) inp.value = cleaned;
       });
     });
@@ -1578,7 +1464,7 @@
 
     function randomizeNumbers(){
       const pool = new Set();
-      while (pool.size < 3) pool.add(100 + Math.floor(Math.random()*900));
+      while (pool.size < 3) pool.add(1 + Math.floor(Math.random()*9999));
       nums = Array.from(pool);
 
       set0.value = nums[0];
@@ -1621,13 +1507,11 @@
       quickPVBtn.classList.toggle('toggle-on', revealPVNumbers);
 
       quickHeaderBtn.textContent = revealHeaderNumbers ? 'Header: ON' : 'Header: OFF';
-      quickPVBtn.textContent = revealPVNumbers ? 'H/T/O: ON' : 'H/T/O: OFF';
+      quickPVBtn.textContent = revealPVNumbers ? 'PV: ON' : 'PV: OFF';
 
       pvModeBtn.classList.toggle('toggle-on', pvCompareMode);
       pvModeBtn.textContent = pvCompareMode ? 'Compare by Place Value: ON' : 'Compare by Place Value';
 
-      // ✅ KEY CHANGE: Button label (circled in red) becomes "Check (a)(b)" when PV-Compare is ON,
-      // otherwise it shows the reminder when PV typing is required.
       const pvRequired = (!pvCompareMode && !revealPVNumbers);
       checkABBtn.textContent = pvRequired ? 'Check (a)(b)+PV' : 'Check (a)(b)';
       lockHint.textContent = pvRequired
@@ -1635,13 +1519,11 @@
         : 'Check (a) and (b) to reveal the numbers.';
     }
 
-    /* ✅ NEW: toggle blocks vs PV table */
     function setPVCompareMode(on){
       pvCompareMode = !!on;
       document.body.classList.toggle('pvcompare', pvCompareMode);
       renderPVCompareTable();
 
-      // reset gate each time you switch mode
       tilesRevealed = false;
       refreshTileMasking();
       clearOrderSlots();
@@ -1649,15 +1531,14 @@
 
       syncQuickButtons();
       fitStage();
-      autoFitClampSizes();
-      applySizes(true);
+      applyDiscSizes(true);
     }
 
     function renderAll(){
       renderHeader();
 
-      autoFitClampSizes();
-      applySizes(true);
+      for (let i=0;i<3;i++) renderBlocksFor(i);
+      applyDiscSizes(true);
 
       renderPV();
       renderPVCompareTable();
@@ -1682,8 +1563,7 @@
       overlay.setAttribute('aria-hidden','false');
       document.body.classList.add('drawer-open');
       fitStage();
-      autoFitClampSizes();
-      applySizes(true);
+      applyDiscSizes(true);
     }
     function closeDrawer(){
       overlay.classList.remove('show');
@@ -1691,8 +1571,7 @@
       overlay.setAttribute('aria-hidden','true');
       document.body.classList.remove('drawer-open');
       fitStage();
-      autoFitClampSizes();
-      applySizes(true);
+      applyDiscSizes(true);
     }
 
     openSettings.addEventListener('click', openDrawer);
@@ -1725,21 +1604,11 @@
     quickHeaderBtn.addEventListener('click', ()=> setRevealHeader(!revealHeaderNumbers));
     quickPVBtn.addEventListener('click', ()=> setRevealPV(!revealPVNumbers));
 
-    /* ✅ NEW */
     pvModeBtn.addEventListener('click', ()=> setPVCompareMode(!pvCompareMode));
 
-    hundWRange.addEventListener('input', ()=>{
-      autoFitClampSizes();
-      applySizes(true);
-    });
-    tenWRange.addEventListener('input', ()=>{
-      autoFitClampSizes();
-      applySizes(true);
-    });
-    oneSRange.addEventListener('input', ()=>{
-      autoFitClampSizes();
-      applySizes(true);
-    });
+    discBigRange.addEventListener('input', ()=>{ applyDiscSizes(false); });
+    discMedRange.addEventListener('input', ()=>{ applyDiscSizes(false); });
+    discSmallRange.addEventListener('input', ()=>{ applyDiscSizes(false); });
 
     // init
     set0.value = nums[0];
@@ -1750,14 +1619,12 @@
     fitStage();
 
     requestAnimationFrame(()=>{
-      autoFitClampSizes();
-      applySizes(true);
+      applyDiscSizes(false);
       setOrderDirectionSmallToBig(true);
       renderAll();
-      setPVCompareMode(false); // start with blocks
+      setPVCompareMode(false); // start with discs
     });
   </script>
 <script src="https://cdn.counter.dev/script.js" data-id="825e93b6-ce99-40ef-8bcc-125f13297433" data-utcoffset="8"></script>
 </body>
 </html>
-```
